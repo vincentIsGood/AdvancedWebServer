@@ -50,18 +50,22 @@ import com.vincentcodes.webserver.ssl.SSLUpgrader;
  * <p>
  * Date of creation: 10/4/2020 (MM/DD/YYYY)
  * <p>
- * This web server is a successor to my previous WebServer project
- * which was created on 8/14/2018, that is why "Advanced" was prepended to 
- * the project name this time.
+ * This web server is a successor to my previous WebServer project which was 
+ * created on 8/14/2018. That is why "Advanced" is prepended to the project 
+ * name this time.
  * <p>
  * Inspired by one of the most used protocol in that day and age (as of 2018),
  * the old WebServer project had been created. As of 2020, I have an urge to 
- * create a more robust and modifiable version of web server built from Java 
+ * create a more robust and modifiable version of webserver built from Java 
  * ground up.
  * <p>
- * This project is said that it will not go public initially. I will evaluate 
- * this option since I would like it to improve and help people who wants a 
- * lightweight webserver.
+ * I was not willing to make this project go public. I will evaluate this  
+ * statement again since I would like it to improve and help people who wants 
+ * a lightweight webserver. 
+ * <p>
+ * One more important factor to make the project public is for my future
+ * career. I spent lots of time improving the server and I want people to know 
+ * it.
  * <p>
  * {@link WebServer} is the entry point.
  * @author Vincent Ko
