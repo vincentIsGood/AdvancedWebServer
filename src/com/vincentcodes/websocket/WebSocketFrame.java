@@ -1,0 +1,82 @@
+package com.vincentcodes.websocket;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+
+import com.vincentcodes.websocket.constants.OpCode;
+import static com.vincentcodes.webserver.util.ByteUtils.*;
+
+public class WebSocketFrame {
+    byte fin; // 1 bit (fin = 1/0)
+    byte rsv; // 3 bits (reserved bits)
+    byte opcode; // 4 bits
+    byte isMasked; // 1 bit
+    long payloadLength;
+    byte[] maskingKey;
+    String payload; // max length() == Integer.MAX_VALUE characters
+    short statusCode = -1;
+
+    public byte getFin() {
+        return fin;
+    }
+
+    public byte getRsv() {
+        return rsv;
+    }
+
+    public byte getOpcodeByte() {
+        return opcode;
+    }
+    public OpCode getOpcode() {
+        return OpCode.fromByte(opcode);
+    }
+
+    public byte getIsMasked() {
+        return isMasked;
+    }
+
+    public long getPayloadLength() {
+        return payloadLength;
+    }
+
+    public byte[] getMaskingKey() {
+        return maskingKey;
+    }
+
+    public String getPayload() {
+        return payload;
+    }
+
+    /**
+     * Turn the frame object into bytes which can be sent 
+     * to the client without touching it.
+     */
+    public byte[] toBytes() {
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        try{
+            os.write(fin << 7 | rsv << 4 | opcode);
+
+            if(payloadLength > Integer.MAX_VALUE){
+                os.write(isMasked << 7 | 127);
+                os.write(longToByteArray(payloadLength));
+            }else if(payloadLength > 125){
+                os.write(isMasked << 7 | 126);
+                os.write(intToByteArray((int)payloadLength));
+            }else{
+                os.write(isMasked << 7 | (byte)payloadLength);
+            }
+
+            if(maskingKey != null){
+                os.write(maskingKey);
+            }
+            
+            if(statusCode != -1){
+                os.write(shortToByteArray(statusCode));
+            }
+
+            os.write(payload.getBytes(StandardCharsets.UTF_8));
+        }catch(IOException e){}
+        return os.toByteArray();
+    }
+}
