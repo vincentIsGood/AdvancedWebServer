@@ -3,7 +3,6 @@ package com.vincentcodes.webserver.http2;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -145,12 +144,19 @@ public class Http2RequestConverter {
             frames.add(frameGenerator.responseHeadersFrame(response.getResponseCode(), response.getHeaders(), -1, true, false));
             // Make sure we send at least 10000 bytes to keep up with the streaming service.
             int dataSize = config.getMaxFrameSize()/2 < 10000? config.getMaxFrameSize() : config.getMaxFrameSize()/2;
-            byte[] resBody = response.getBody().getBytes();
-            int nextIndex = 0;
-            for(; nextIndex < resBody.length - dataSize; nextIndex += dataSize){
-                frames.add(frameGenerator.dataFrame(Arrays.copyOfRange(resBody, nextIndex, nextIndex + dataSize), -1, false));
+            byte[] data;
+            boolean endOfStream = false;
+            while(!endOfStream){
+                data = response.getBody().getBytes(dataSize);
+                endOfStream = data.length != dataSize;
+                frames.add(frameGenerator.dataFrame(data, -1, endOfStream));
             }
-            frames.add(frameGenerator.dataFrame(Arrays.copyOfRange(resBody, nextIndex, resBody.length), -1, true));
+            // byte[] resBody = response.getBody().getBytes();
+            // int nextIndex = 0;
+            // for(; nextIndex < resBody.length - dataSize; nextIndex += dataSize){
+            //     frames.add(frameGenerator.dataFrame(Arrays.copyOfRange(resBody, nextIndex, nextIndex + dataSize), -1, false));
+            // }
+            // frames.add(frameGenerator.dataFrame(Arrays.copyOfRange(resBody, nextIndex, resBody.length), -1, true));
             // frames.add(frameGenerator.rstStreamFrame(-1));
         }else if(response.getHeaders().size() > 0){
             frames.add(frameGenerator.responseHeadersFrame(response.getResponseCode(), response.getHeaders(), -1, true, true));
