@@ -140,15 +140,18 @@ public class ServerThread extends Thread{
             response = HttpResponses.generate400Response();
         }
 
-        String resHeadersString = response.asString();
-        os.write(resHeadersString.getBytes());
-        WebServer.logger.debug("\n" + resHeadersString.replaceAll("\r\n", "\n"));
-        
-        if(response.getBody().length() > 0){
-            initWriteTimeout(os, WebServer.CONNECTION_WRITE_TIMEOUT_MILSEC);
-            os.write(response.getBody().getBytes());
+        try(ResponseBuilder res = response){
+            String resHeadersString = response.asString();
+            os.write(resHeadersString.getBytes());
+            WebServer.logger.debug("\n" + resHeadersString.replaceAll("\r\n", "\n"));
+            
+            if(response.getBody().length() > 0){
+                initWriteTimeout(os, WebServer.CONNECTION_WRITE_TIMEOUT_MILSEC);
+                // os.write(response.getBody().getBytes());
+                response.getBody().streamBytesTo(os);
+            }
         }
-
+        
         clientConnection.setSoTimeout(0);
     }
 

@@ -82,16 +82,17 @@ public class Http2Connection {
 
             Optional<HttpRequest> optRequest = converter.toRequest();
             if(optRequest.isPresent()){
-                ResponseBuilder response = handleHttpRequest(optRequest.get());
-                List<Http2Frame> frames = converter.fromResponse(response);
-                // max frame count is used to prevent safari from requesting a humongous payload
-                int maxFrameAmount = (int)Math.floor((WebServer.MAX_PARTIAL_DATA_LENGTH+1)/config.getMaxFrameSize()) + Http2RequestConverter.getNonDataFrameCount(frames);
-                if(frames.size() <= maxFrameAmount){
-                    stream.send(frames);
-                }else{
-                    // just end the stream halfway (just like how safari treat me)
-                    frames.add(maxFrameAmount+1, stream.getFrameGenerator().rstStreamFrame(-1, ErrorCodes.CANCEL));
-                    stream.send(frames);
+                try(ResponseBuilder response = handleHttpRequest(optRequest.get())){
+                    List<Http2Frame> frames = converter.fromResponse(response);
+                    // max frame count is used to prevent safari from requesting a humongous payload
+                    int maxFrameAmount = (int)Math.floor((WebServer.MAX_PARTIAL_DATA_LENGTH+1)/config.getMaxFrameSize()) + Http2RequestConverter.getNonDataFrameCount(frames);
+                    if(frames.size() <= maxFrameAmount){
+                        stream.send(frames);
+                    }else{
+                        // just end the stream halfway (just like how safari treat me)
+                        frames.add(maxFrameAmount+1, stream.getFrameGenerator().rstStreamFrame(-1, ErrorCodes.CANCEL));
+                        stream.send(frames);
+                    }
                 }
             }
         }else{

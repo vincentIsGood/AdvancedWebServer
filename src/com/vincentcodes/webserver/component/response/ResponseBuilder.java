@@ -1,5 +1,7 @@
 package com.vincentcodes.webserver.component.response;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.Date;
 
 import com.vincentcodes.webserver.WebServer;
@@ -11,7 +13,7 @@ import com.vincentcodes.webserver.component.header.HttpHeaders;
  * This is a HTTP/1.1 response though you can convert it
  * into HTTP/2 response. See implementation.
  */
-public class ResponseBuilder {
+public class ResponseBuilder implements Closeable {
     private boolean responseCodeModified = false;
     // make the response empty, not recommended (unless you do not want to respond to a request)
     private boolean isEmptyResponse = false;
@@ -121,6 +123,11 @@ public class ResponseBuilder {
 
     public void empty(){
         isEmptyResponse = true;
+    }
+
+    @Override
+    public void close() throws IOException{
+        body.close();
     }
 
     /**

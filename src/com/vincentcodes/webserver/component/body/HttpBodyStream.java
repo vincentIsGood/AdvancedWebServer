@@ -3,6 +3,7 @@ package com.vincentcodes.webserver.component.body;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Arrays;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -17,6 +18,7 @@ public class HttpBodyStream implements HttpBody {
     private EntityEncodings encoding;
     private int maxCap = -1;
     private int writtenCount = 0;
+    private int nextByteIndex = 0;
     
     public HttpBodyStream(ByteArrayOutputStream byteArray, EntityEncodings encoding){
         this.byteArray = byteArray;
@@ -49,14 +51,6 @@ public class HttpBodyStream implements HttpBody {
     public EntityEncodings getAcceptedEncoding(){
         return encoding;
     }
-    
-    @Override
-    public String string(){
-        if(encoding != null){
-            return null;
-        }
-        return byteArray.toString();
-    }
 
     @Override
     public void writeToBody(int b) throws IOException{
@@ -75,6 +69,14 @@ public class HttpBodyStream implements HttpBody {
         }
         os.write(b);
     }
+    
+    @Override
+    public String string(){
+        if(encoding != null){
+            return null;
+        }
+        return byteArray.toString();
+    }
 
     /**
      * Once this method is invoked, {@link DeflaterOutputStream#finish()} is invoked
@@ -91,13 +93,46 @@ public class HttpBodyStream implements HttpBody {
         }
         return byteArray.toByteArray();
     }
+
+    /**
+     * Will call {@link #getBytes} for each call. Not recommended if you wanna do 
+     * this repeatedly.
+     * @return empty byte[] if end-of-stream is already reached.
+     */
+    @Override
+    public byte[] getBytes(int length){
+        byte[] bytes = getBytes();
+        if(nextByteIndex >= bytes.length)
+            return new byte[0];
+        return Arrays.copyOfRange(bytes, nextByteIndex, Math.min(nextByteIndex += length, bytes.length));
+    }
     
     /**
-     * Since this method uses {@link #getBytes()}, use this method carefully.
-     * @return Length of the buffer (if compression is used, then it's the compressed size)
+     * This method uses {@link #getBytes()}, which will finish off the
+     * compression immediately. 
+     */
+    @Override
+    public void streamBytesTo(OutputStream os) throws IOException {
+        os.write(getBytes());
+    }
+
+    /**
+     * This method uses {@link #getBytes()}, which will finish off the
+     * compression immediately. 
+     * @return Length of the buffer (if compression is used, then it's 
+     * the compressed size)
      */
     @Override
     public int length(){
         return getBytes().length;
+    }
+
+    @Override
+    public void close() throws IOException {
+        os.close();
+    }
+    
+    public void resetInput() throws IOException{
+        nextByteIndex = 0;
     }
 }

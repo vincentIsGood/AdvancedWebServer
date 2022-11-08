@@ -1,10 +1,12 @@
 package com.vincentcodes.webserver.component.body;
 
+import java.io.Closeable;
 import java.io.IOException;
+import java.io.OutputStream;
 
 import com.vincentcodes.webserver.component.header.EntityEncodings;
 
-public interface HttpBody {
+public interface HttpBody extends Closeable{
     /**
      * @return null if the provided accepted encoding is not supported
      */
@@ -19,15 +21,13 @@ public interface HttpBody {
      */
     public void maxCapacity(int maxCap);
 
-    /**
-     * This causes the DeflatedOutputStream to call finish.
-     */
     public byte[] getBytes();
 
-    /**
-     * Returns null if DeflatedOutputStream is used.
-     */
+    public byte[] getBytes(int length);
+
     public String string();
+
+    public void streamBytesTo(OutputStream os) throws IOException;
 
     public int length();
 }
