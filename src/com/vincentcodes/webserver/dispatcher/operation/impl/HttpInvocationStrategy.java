@@ -6,7 +6,6 @@ import java.lang.reflect.InvocationTargetException;
 
 import com.vincentcodes.webserver.WebServer;
 import com.vincentcodes.webserver.annotaion.response.Mutatable;
-import com.vincentcodes.webserver.component.body.HttpBodyStream;
 import com.vincentcodes.webserver.component.header.EntityInfo;
 import com.vincentcodes.webserver.component.header.HttpHeaders;
 import com.vincentcodes.webserver.component.header.RangeHeader;
@@ -23,7 +22,7 @@ public class HttpInvocationStrategy implements MethodInvocationStrategy {
     @Override
     public ResponseBuilder invoke(HttpRequest request, MethodDecorator method)
             throws InvocationTargetException, IOException, IllegalAccessException, IllegalArgumentException {
-        ResponseBuilder response = ResponseBuilder.getDefault(new HttpBodyStream());
+        ResponseBuilder response = HttpResponses.createDefault();
         if (method.parametersInFormOf(HttpRequest.class)) {
             if (method.returnsVoid()) {
                 method.quickInvoke(request);

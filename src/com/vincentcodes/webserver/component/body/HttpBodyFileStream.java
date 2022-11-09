@@ -62,6 +62,11 @@ public class HttpBodyFileStream implements HttpBody {
         os.write(b);
     }
     
+    @Override
+    public void writeToBody(byte[] b, int length) throws IOException {
+        os.write(b, 0, length);
+    }
+
     /**
      * Will call {@link #resetInput}.
      */

@@ -16,6 +16,8 @@ public interface HttpBody extends Closeable{
 
     public void writeToBody(byte[] b) throws IOException;
 
+    public void writeToBody(byte[] b, int length) throws IOException;
+
     /**
      * @param maxCap Max bytes write count; -1 is considered unlimited
      */

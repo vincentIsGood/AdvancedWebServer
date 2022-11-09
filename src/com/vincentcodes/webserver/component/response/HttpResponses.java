@@ -12,11 +12,16 @@ import com.vincentcodes.webserver.component.header.HttpHeaders;
 import com.vincentcodes.webserver.dispatcher.operation.DispatcherOperation;
 import com.vincentcodes.webserver.util.FileExtUtils;
 
+//TODO: Search for FileInputStream and replace the reading code with write(length)
 /**
  * This class returns common http responses. It is used in
  * implementations of {@link DispatcherOperation}.
  */
 public class HttpResponses {
+    public static ResponseBuilder createDefault(){
+        return ResponseBuilder.getDefault(new HttpBodyStream());
+    }
+    
     public static ResponseBuilder createGenericResponse(int responseCode){
         ResponseBuilder response = ResponseBuilder.getInstance(responseCode, new HttpBodyStream());
         // response.getHeaders().add("connection", "close"); // HTTP/2 does not support this

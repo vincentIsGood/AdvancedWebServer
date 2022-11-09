@@ -10,6 +10,7 @@ import java.util.HashMap;
 
 import com.vincentcodes.webserver.WebServer;
 import com.vincentcodes.webserver.component.body.HttpBody;
+import com.vincentcodes.webserver.component.body.HttpBodyFileStream;
 import com.vincentcodes.webserver.component.body.HttpBodyStream;
 import com.vincentcodes.webserver.component.header.EntityInfo;
 import com.vincentcodes.webserver.component.header.HttpHeaders;
@@ -36,7 +37,13 @@ public class RequestParser {
         HttpHeaders headers = new HttpHeaders();
         HttpRequestBasicInfo basicInfo = null;
         MultipartFormData multipart = null;
-        HttpBody body = new HttpBodyStream();
+        HttpBody body;
+        try{
+            body = new HttpBodyFileStream();
+        }catch(IOException e){
+            e.printStackTrace();
+            body = new HttpBodyStream();
+        }
 
         // For the purpose of logging the whole request 
         // (Necessary? No, maybe I'll add an option to disable it)
