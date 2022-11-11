@@ -15,20 +15,29 @@ import com.vincentcodes.webserver.component.header.EntityEncodings;
  */
 public class HttpBodyFileStream implements HttpBody {
     private File file;
+    private boolean deleteOnClose;
+
     private FileOutputStream fos;
     private FileInputStream fis;
     private OutputStream os; // compression output stream
     private int maxCap = -1;
     private int writtenCount = 0;
     
-    public HttpBodyFileStream(File file) throws FileNotFoundException{
+    public HttpBodyFileStream(File file, boolean deleteOnClose) throws FileNotFoundException{
         this.file = file;
+        this.deleteOnClose = deleteOnClose;
         fos = new FileOutputStream(file);
         fis = new FileInputStream(file);
         os = fos;
     }
+    public HttpBodyFileStream(File file) throws FileNotFoundException{
+        this(file, false);
+    }
+    /**
+     * Creates a temporary file to store and get the data
+     */
     public HttpBodyFileStream() throws IOException{
-        this(File.createTempFile("webserver-res", null));
+        this(File.createTempFile("webserver-res", null), true);
     }
 
     @Override
@@ -130,26 +139,20 @@ public class HttpBodyFileStream implements HttpBody {
     public void close() throws IOException {
         try{
             fis.close();
-        }catch(IOException e){
-            e.printStackTrace();
-        }
-        try{
             fos.close();
         }catch(IOException e){
             e.printStackTrace();
+        }finally{
+            if(deleteOnClose)
+                file.delete();
         }
     }
 
     /**
      * When error occurs, input stream will NOT be reset.
-     * @throws IOException
      */
     public void resetInput() throws IOException{
-        try{
-            fis.close();
-            fis = new FileInputStream(file);
-        }catch(IOException e){
-            e.printStackTrace();
-        }
+        fis.close();
+        fis = new FileInputStream(file);
     }
 }
