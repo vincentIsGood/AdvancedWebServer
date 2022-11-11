@@ -23,7 +23,9 @@ public class HttpTunnelTest {
     public void sentRequest_is_valid() throws IOException{
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         HttpRequest request = RequestParser.parse(RequestGenerator.POST.generateRequest("Test", "help"));
-        HttpTunnel.writeRequestToOutputStream(output, request);
+        try(HttpRequest req = request){
+            HttpTunnel.writeRequestToOutputStream(output, request);
+        }
         assertEquals(RequestGenerator.POST.generateRequest("Test", "help"), output.toString());
     }
 }

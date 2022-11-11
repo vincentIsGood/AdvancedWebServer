@@ -6,6 +6,14 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestInstance.Lifecycle;
+
 import com.vincentcodes.tests.utils.RequestGenerator;
 import com.vincentcodes.webserver.ExtensionRegister;
 import com.vincentcodes.webserver.WebServer;
@@ -17,18 +25,14 @@ import com.vincentcodes.webserver.dispatcher.operation.OperationStrategyFactory;
 import com.vincentcodes.webserver.dispatcher.operation.OperationStrategyFactory.InvocationTypes;
 import com.vincentcodes.webserver.dispatcher.operation.impl.SimplerHttpDispatcherOperation;
 
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.TestInstance.Lifecycle;
-
 @TestInstance(Lifecycle.PER_CLASS)
 @DisplayName("Testing class SimplerHttpHandlerInvocation")
 public class GetReqestTests {
     private WebServer server;
     private HttpRequestDispatcher dispatcher;
+
+    private HttpRequest request;
+    private ResponseBuilder response;
 
     @BeforeAll
     public void setup() throws IOException{
@@ -43,40 +47,46 @@ public class GetReqestTests {
 
     @Test
     public void test_if_response_got_modified() throws InvocationTargetException{
-        HttpRequest request = RequestParser.parse(RequestGenerator.GET.generateRequest("/readme.txt?get=123.5&json={\"name\":\"vincent\", \"age\":19, \"desc\":\"I love anime\"}"));
-        ResponseBuilder response = dispatcher.dispatchObjectToHandlers(request);
+        request = RequestParser.parse(RequestGenerator.GET.generateRequest("/readme.txt?get=123.5&json={\"name\":\"vincent\", \"age\":19, \"desc\":\"I love anime\"}"));
+        response = dispatcher.dispatchObjectToHandlers(request);
         assertEquals(200, response.getResponseCode());
         assertEquals("null 123.500000 {name: vincent, age: 19, desc: I love anime}", response.getBody().string());
     }
 
     @Test
     public void test_if_response_returns_json() throws InvocationTargetException{
-        HttpRequest request = RequestParser.parse(RequestGenerator.GET.generateRequest("/others"));
-        ResponseBuilder response = dispatcher.dispatchObjectToHandlers(request);
+        request = RequestParser.parse(RequestGenerator.GET.generateRequest("/others"));
+        response = dispatcher.dispatchObjectToHandlers(request);
         assertEquals(200, response.getResponseCode());
         assertEquals("{\"name\":\"vincent\",\"age\":19,\"desc\":\"I love anime\"}", response.getBody().string());
     }
 
     @Test
     public void test_if_response_returns_json_array() throws InvocationTargetException{
-        HttpRequest request = RequestParser.parse(RequestGenerator.GET.generateRequest("/others_array"));
-        ResponseBuilder response = dispatcher.dispatchObjectToHandlers(request);
+        request = RequestParser.parse(RequestGenerator.GET.generateRequest("/others_array"));
+        response = dispatcher.dispatchObjectToHandlers(request);
         assertEquals(200, response.getResponseCode());
         assertEquals("[{\"name\":\"vincent\",\"age\":19,\"desc\":\"I love anime\"}]", response.getBody().string());
     }
 
     @Test
     public void test_if_response_returns_null_successfully() throws InvocationTargetException{
-        HttpRequest request = RequestParser.parse(RequestGenerator.GET.generateRequest("/null"));
-        ResponseBuilder response = dispatcher.dispatchObjectToHandlers(request);
+        request = RequestParser.parse(RequestGenerator.GET.generateRequest("/null"));
+        response = dispatcher.dispatchObjectToHandlers(request);
         assertEquals(200, response.getResponseCode());
     }
 
     @Test
     public void test_if_server_handles_unknown_objects_successfully() throws InvocationTargetException{
-        HttpRequest request = RequestParser.parse(RequestGenerator.GET.generateRequest("/unknown_object"));
-        ResponseBuilder response = dispatcher.dispatchObjectToHandlers(request);
+        request = RequestParser.parse(RequestGenerator.GET.generateRequest("/unknown_object"));
+        response = dispatcher.dispatchObjectToHandlers(request);
         assertEquals(500, response.getResponseCode());
+    }
+
+    @AfterEach
+    public void close() throws IOException{
+        if(request != null) request.close();
+        if(response != null) response.close();
     }
 
     @AfterAll

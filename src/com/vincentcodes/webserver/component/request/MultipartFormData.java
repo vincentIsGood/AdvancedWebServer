@@ -1,6 +1,8 @@
 package com.vincentcodes.webserver.component.request;
 
 import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 import com.vincentcodes.webserver.component.body.HttpBody;
 import com.vincentcodes.webserver.component.header.HttpHeaders;
@@ -12,7 +14,7 @@ import com.vincentcodes.webserver.util.HtmlEntityUtils;
  * repeats, the new one will <b>replace</b> the old one.
  */
 public class MultipartFormData {
-    private HashMap<String, FormData> formData;
+    private Map<String, FormData> formData;
 
     public MultipartFormData(){
         formData = new HashMap<>();
@@ -25,11 +27,11 @@ public class MultipartFormData {
      * (This should not be empty) or the data that comes after 
      * the headers.
      */
-    public void put(String headerValue, HttpBody body){
-        headerValue = HtmlEntityUtils.unescapeDecimal(headerValue);
+    public void put(HttpHeaders headers, HttpBody body){
+        String headerValue = HtmlEntityUtils.unescapeDecimal(headers.getHeader("content-disposition"));
         String name = HttpHeaders.extractParameter(headerValue, "name");
         String filename = HttpHeaders.extractParameter(headerValue, "filename");
-        put(name, filename, body);
+        put(name, filename, headers, body);
     }
 
     // public void put(String name, HttpBody body){
@@ -42,11 +44,15 @@ public class MultipartFormData {
      * @param filename nullable
      * @param body should not be null
      */
-    public void put(String name, String filename, HttpBody body){
-        formData.put(name, new FormData(name, filename, body));
+    public void put(String name, String filename, HttpHeaders headers, HttpBody body){
+        formData.put(name, new FormData(name, filename, headers, body));
     }
 
     public FormData getData(String name){
         return formData.get(name);
+    }
+
+    public Set<String> getNames(){
+        return formData.keySet();
     }
 }

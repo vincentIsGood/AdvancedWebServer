@@ -71,6 +71,11 @@ public class HttpBodyStream implements HttpBody {
     }
     
     @Override
+    public void writeToBody(byte[] b, int length) throws IOException {
+        os.write(b, 0, length);
+    }
+    
+    @Override
     public String string(){
         if(encoding != null){
             return null;

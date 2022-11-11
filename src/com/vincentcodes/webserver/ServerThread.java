@@ -33,6 +33,10 @@ public class ServerThread extends Thread{
     private String clientIpWithPort;
     private HttpRequestValidator requestValidator;
     private HttpRequestDispatcher requestDispatcher;
+
+    /**
+     * Previous HttpRequest is always closed
+     */
     private HttpRequest previousHttpRequest;
 
     private IOContainer socketIOContainer;
@@ -114,33 +118,31 @@ public class ServerThread extends Thread{
     private void handleHttpConnection() throws SocketTimeoutException, IOException, InvocationTargetException{
         InputStream is = socketIOContainer.getInputStream();
         OutputStream os = socketIOContainer.getOutputStream();
-        HttpRequest request = null;
-        ResponseBuilder response = null;
+        final ResponseBuilder response;
 
-        request = RequestParser.parse(is);
-        previousHttpRequest = request;
-        if(!requestValidator.requestIsValid(request)){
-            request.invalid();
-        }
-        
-        if(request.isValid()){
-            response = requestDispatcher.dispatchObjectToHandlers(request);
+        try(HttpRequest request = RequestParser.parse(is)){
+            previousHttpRequest = request;
+            if(!requestValidator.requestIsValid(request))
+                request.invalid();
+            
+            if(request.isValid()){
+                response = requestDispatcher.dispatchObjectToHandlers(request);
 
-            // upgrade stuff
-            String responseUpgradeHeader = response.getHeaders().getHeader("upgrade");
-            String requestUpgradeHeader = request.getHeaders().getHeader("upgrade");
-            if(responseUpgradeHeader != null && requestUpgradeHeader != null){
-                if(responseUpgradeHeader.equals("websocket") && requestUpgradeHeader.equals("websocket")){
-                    currentProtocol = WebProtocol.WEB_SOCKET;
+                // upgrade stuff (both party agrees to upgrade)
+                String responseUpgradeHeader = response.getHeaders().getHeader("upgrade");
+                String requestUpgradeHeader = request.getHeaders().getHeader("upgrade");
+                if(responseUpgradeHeader != null && requestUpgradeHeader != null){
+                    if(responseUpgradeHeader.equals("websocket") && requestUpgradeHeader.equals("websocket"))
+                        currentProtocol = WebProtocol.WEB_SOCKET;
+                }else if(sslConnection != null && sslConnection.getApplicationProtocol().equals("h2")){
+                    currentProtocol = WebProtocol.HTTP_TWO;
                 }
-            }else if(sslConnection != null && sslConnection.getApplicationProtocol().equals("h2")){
-                currentProtocol = WebProtocol.HTTP_TWO;
+            }else{
+                response = HttpResponses.generate400Response();
             }
-        }else{
-            response = HttpResponses.generate400Response();
         }
 
-        try(ResponseBuilder res = response){
+        try(response){
             String resHeadersString = response.asString();
             os.write(resHeadersString.getBytes());
             WebServer.logger.debug("\n" + resHeadersString.replaceAll("\r\n", "\n"));

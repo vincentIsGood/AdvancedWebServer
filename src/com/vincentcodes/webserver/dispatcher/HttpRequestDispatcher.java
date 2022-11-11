@@ -188,6 +188,7 @@ public class HttpRequestDispatcher extends Dispatcher<HttpRequest, ResponseBuild
      */
     @Override
     public ResponseBuilder dispatchObjectToHandlers(HttpRequest request) throws InvocationTargetException{
+        // TODO: close the request.
         for(DispatcherOperation<HttpRequest, ResponseBuilder, MethodDecorator> operation : super.operations){
             OperationResult<ResponseBuilder> result = operation.start(request);
             if(result.status() == OperationResultStatus.FAILURE){
