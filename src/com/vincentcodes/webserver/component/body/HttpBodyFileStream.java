@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.zip.DeflaterOutputStream;
 
-import com.vincentcodes.webserver.WebServer;
 import com.vincentcodes.webserver.component.header.EntityEncodings;
 
 /**
@@ -20,16 +19,17 @@ public class HttpBodyFileStream implements HttpBody {
 
     private FileOutputStream fos;
     private FileInputStream fis;
-    private OutputStream os; // compression output stream
     private int maxCap = -1;
     private int writtenCount = 0;
     
     public HttpBodyFileStream(File file, boolean deleteOnClose) throws FileNotFoundException{
         this.file = file;
         this.deleteOnClose = deleteOnClose;
+        if(deleteOnClose) 
+            file.deleteOnExit();
+        
         fos = new FileOutputStream(file);
         fis = new FileInputStream(file);
-        os = fos;
     }
     public HttpBodyFileStream(File file) throws FileNotFoundException{
         this(file, false);
@@ -60,21 +60,22 @@ public class HttpBodyFileStream implements HttpBody {
             if(writtenCount > maxCap) return;
             writtenCount += 1;
         }
-        os.write(b);
+        fos.write(b);
     }
 
     @Override
     public void writeToBody(byte[] b) throws IOException{
-        if(maxCap != -1){
-            if(writtenCount > maxCap) return;
-            writtenCount += b.length;
-        }
-        os.write(b);
+        writeToBody(b, b.length);
     }
     
     @Override
     public void writeToBody(byte[] b, int length) throws IOException {
-        os.write(b, 0, length);
+        if(maxCap != -1){
+            if(writtenCount > maxCap) return;
+            writtenCount += length;
+        }
+        fos.write(b, 0, length);
+        fos.flush();
     }
 
     /**
@@ -128,27 +129,28 @@ public class HttpBodyFileStream implements HttpBody {
     }
 
     /**
-     * Since this method uses {@link #getBytes()}, use this method carefully.
-     * @return Length of the buffer
+     * @return available bytes up for grab
      */
     @Override
     public int length(){
-        return getBytes().length;
+        try {
+            return fis.available();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return 0;
     }
 
     @Override
     public void close() throws IOException {
-        WebServer.logger.warn("Closing");
         try{
             fis.close();
             fos.close();
         }catch(IOException e){
             e.printStackTrace();
         }finally{
-            if(deleteOnClose){
-                WebServer.logger.warn("Deleting file");
+            if(deleteOnClose)
                 file.delete();
-            }
         }
     }
 

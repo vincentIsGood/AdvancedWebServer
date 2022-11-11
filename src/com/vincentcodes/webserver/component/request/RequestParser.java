@@ -16,6 +16,7 @@ import com.vincentcodes.webserver.component.header.EntityInfo;
 import com.vincentcodes.webserver.component.header.HttpHeaders;
 import com.vincentcodes.webserver.exception.CannotParseRequestException;
 import com.vincentcodes.webserver.exception.UnsupportedHttpMethodException;
+import com.vincentcodes.webserver.helper.ReadUntilResult;
 import com.vincentcodes.webserver.helper.TextBinaryInputStream;
 
 /**
@@ -172,11 +173,17 @@ public class RequestParser {
 
             if(startBody){
                 HttpBody body = new HttpBodyFileStream();
-                byte[] content = reader.readBytesUntil("\r\n--" + boundary);
-                // If EOF is reached, do not do the processing
-                if(content == null) break;
+                // byte[] content = reader.readBytesUntil("\r\n--" + boundary);
+                // // If EOF is reached, do not do the processing
+                // if(content == null) break;
+                // body.writeToBody(content);
 
-                body.writeToBody(content);
+                ReadUntilResult result;
+                do{
+                    result = reader.readBytesUntil("\r\n--" + boundary, 4096);
+                    body.writeToBody(result.data());
+                }while(result.data() != null && !result.isMatchingStrFound());
+                
                 // wholeRequest.append(body.string()).append("\n");
                 wholeRequest.append("--" + boundary);
                 wholeRequest.append(reader.readLine()).append("\n"); // skip the "\n" or "--\n"
