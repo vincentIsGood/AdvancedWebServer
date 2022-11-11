@@ -8,6 +8,14 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestInstance.Lifecycle;
+
 import com.vincentcodes.tests.utils.RequestGenerator;
 import com.vincentcodes.webserver.HttpHandlerRegister;
 import com.vincentcodes.webserver.WebServer;
@@ -20,18 +28,13 @@ import com.vincentcodes.webserver.dispatcher.operation.OperationStrategyFactory;
 import com.vincentcodes.webserver.dispatcher.operation.OperationStrategyFactory.InvocationTypes;
 import com.vincentcodes.webserver.dispatcher.operation.impl.HttpDispatcherOperation;
 
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.TestInstance.Lifecycle;
-
 @TestInstance(Lifecycle.PER_CLASS)
 @DisplayName("Testing class ResponseParser")
 public class ResponseParserTest {
     private WebServer server;
     private HttpRequestDispatcher dispatcher;
+
+    private HttpRequest sampleRequest;
 
     @BeforeAll
     public void setup() throws IOException{
@@ -45,7 +48,7 @@ public class ResponseParserTest {
 
     @Test
     public void test_response_is_successfully_parsed() throws InvocationTargetException{
-        HttpRequest sampleRequest = RequestParser.parse(RequestGenerator.GET.generateRequest("/readme.txt"));
+        sampleRequest = RequestParser.parse(RequestGenerator.GET.generateRequest("/readme.txt"));
         ResponseBuilder response = dispatcher.dispatchObjectToHandlers(sampleRequest);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         baos.writeBytes(response.asString().getBytes());
@@ -72,6 +75,12 @@ public class ResponseParserTest {
                       "\r\n";
         ResponseBuilder parsedResponse = ResponseParser.parse(new ByteArrayInputStream(test.getBytes()));
         System.out.println("Result: " + parsedResponse.getBody().string());
+    }
+
+    @AfterEach
+    public void close() throws IOException{
+        if(sampleRequest != null) sampleRequest.close();
+        // if(response != null) response.close();
     }
 
     @AfterAll

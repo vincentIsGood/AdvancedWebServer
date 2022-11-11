@@ -1,5 +1,7 @@
 package com.vincentcodes.webserver.component.request;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.HashMap;
@@ -11,7 +13,7 @@ import com.vincentcodes.webserver.WebServer;
 import com.vincentcodes.webserver.component.body.HttpBody;
 import com.vincentcodes.webserver.component.header.HttpHeaders;
 
-public class HttpRequest {
+public class HttpRequest implements Closeable{
     public static final List<String> SUPPORTED_METHODS = WebServer.SUPPORTED_REQUEST_METHOD.keySet().stream().collect(Collectors.toList());
 
     private boolean isRequestValid = true;
@@ -91,6 +93,26 @@ public class HttpRequest {
 
     public void setWholeRequest(String wholeRequest) {
         this.wholeRequest = wholeRequest;
+    }
+
+    @Override
+    public void close() throws IOException {
+        try{
+            body.close();
+        }catch(IOException e){
+            e.printStackTrace();
+            throw e;
+        }finally{
+            if(multipart != null){
+                for(String name : multipart.getNames()){
+                    try{
+                        multipart.getData(name).getBody().close();
+                    }catch(IOException e){
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
     }
 
     /**

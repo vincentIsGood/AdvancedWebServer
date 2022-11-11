@@ -6,6 +6,14 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestInstance.Lifecycle;
+
 import com.vincentcodes.tests.utils.RequestGenerator;
 import com.vincentcodes.webserver.ExtensionRegister;
 import com.vincentcodes.webserver.WebServer;
@@ -17,18 +25,14 @@ import com.vincentcodes.webserver.dispatcher.operation.OperationStrategyFactory;
 import com.vincentcodes.webserver.dispatcher.operation.OperationStrategyFactory.InvocationTypes;
 import com.vincentcodes.webserver.dispatcher.operation.impl.HttpDispatcherOperation;
 
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.TestInstance.Lifecycle;
-
 @TestInstance(Lifecycle.PER_CLASS)
 @DisplayName("Testing Post Requests")
 public class PostRequestTests {
     private WebServer server;
     private HttpRequestDispatcher dispatcher;
+
+    private HttpRequest sampleRequest;
+    private ResponseBuilder response;
 
     @BeforeAll
     public void setup() throws IOException{
@@ -43,29 +47,35 @@ public class PostRequestTests {
 
     @Test
     public void is_content_put_into_httpbody() throws InvocationTargetException{
-        HttpRequest sampleRequest = RequestParser.parse(RequestGenerator.POST.generateRequest("/test", "key=asd&key2=asd"));
-        ResponseBuilder response = dispatcher.dispatchObjectToHandlers(sampleRequest);
+        sampleRequest = RequestParser.parse(RequestGenerator.POST.generateRequest("/test", "key=asd&key2=asd"));
+        response = dispatcher.dispatchObjectToHandlers(sampleRequest);
         assertEquals(200, response.getResponseCode());
         assertEquals("key=asd&key2=asd", response.getBody().string());
     }
 
     @Test
     public void is_file_using_multipart_correctly_posted() throws InvocationTargetException{
-        HttpRequest sampleRequest = RequestParser.parse(RequestGenerator.POST.generateMultipartRequest("/test_form"));
+        sampleRequest = RequestParser.parse(RequestGenerator.POST.generateMultipartRequest("/test_form"));
         assertEquals(true, sampleRequest.hasMultipartData());
         assertEquals("厳しい.txt", sampleRequest.getMultipartFormData().getData("testfile").getFilename());
     }
 
     @Test 
     public void is_file_using_multipart_correctly_responded() throws InvocationTargetException{
-        HttpRequest sampleRequest = RequestParser.parse(RequestGenerator.POST.generateMultipartRequest("/test_form"));
-        ResponseBuilder response = dispatcher.dispatchObjectToHandlers(sampleRequest);
+        sampleRequest = RequestParser.parse(RequestGenerator.POST.generateMultipartRequest("/test_form"));
+        response = dispatcher.dispatchObjectToHandlers(sampleRequest);
         assertEquals(200, response.getResponseCode());
         assertEquals("This is a test file.\nThis is a test file.", response.getBody().string());
     }
 
-    @AfterAll
+    @AfterEach
     public void close() throws IOException{
+        if(sampleRequest != null) sampleRequest.close();
+        if(response != null) response.close();
+    }
+
+    @AfterAll
+    public void closeAll() throws IOException{
         server.close();
     }
 }

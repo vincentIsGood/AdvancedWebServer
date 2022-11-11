@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -27,6 +28,9 @@ public class CommonOpStrategyTest {
     private WebServer server;
     private HttpRequestDispatcher dispatcher;
 
+    private HttpRequest sampleRequest;
+    private ResponseBuilder response;
+
     @BeforeAll
     public void setup() throws IOException, ReflectiveOperationException{
         HttpHandlerRegister.clear();
@@ -41,16 +45,22 @@ public class CommonOpStrategyTest {
 
     @Test
     public void test_filterout_invalid_method_then_give_404() throws InvocationTargetException{
-        HttpRequest sampleRequest = RequestParser.parse(RequestGenerator.GET.generateRequest("/"));
-        ResponseBuilder response = dispatcher.dispatchObjectToHandlers(sampleRequest);
+        sampleRequest = RequestParser.parse(RequestGenerator.GET.generateRequest("/"));
+        response = dispatcher.dispatchObjectToHandlers(sampleRequest);
         assertEquals(404, response.getResponseCode());
     }
 
     @Test
     public void test_try_filter_valid_method_then_give_200() throws InvocationTargetException{
-        HttpRequest sampleRequest = RequestParser.parse(RequestGenerator.POST.generateRequest("/", ""));
-        ResponseBuilder response = dispatcher.dispatchObjectToHandlers(sampleRequest);
+        sampleRequest = RequestParser.parse(RequestGenerator.POST.generateRequest("/", ""));
+        response = dispatcher.dispatchObjectToHandlers(sampleRequest);
         assertEquals(200, response.getResponseCode());
         assertEquals("success", response.getBody().string());
+    }
+
+    @AfterEach
+    public void close() throws IOException{
+        if(sampleRequest != null) sampleRequest.close();
+        if(response != null) response.close();
     }
 }

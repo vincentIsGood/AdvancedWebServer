@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.zip.DeflaterOutputStream;
 
+import com.vincentcodes.webserver.WebServer;
 import com.vincentcodes.webserver.component.header.EntityEncodings;
 
 /**
@@ -137,14 +138,17 @@ public class HttpBodyFileStream implements HttpBody {
 
     @Override
     public void close() throws IOException {
+        WebServer.logger.warn("Closing");
         try{
             fis.close();
             fos.close();
         }catch(IOException e){
             e.printStackTrace();
         }finally{
-            if(deleteOnClose)
+            if(deleteOnClose){
+                WebServer.logger.warn("Deleting file");
                 file.delete();
+            }
         }
     }
 

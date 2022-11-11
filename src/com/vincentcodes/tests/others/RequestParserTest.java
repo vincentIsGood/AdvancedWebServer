@@ -10,11 +10,11 @@ import org.junit.jupiter.api.Test;
 public class RequestParserTest {
     @Test
     public void test_simple_request() throws Exception{
-        RequestParser.parse(RequestGenerator.GET.generateRequest("/asd"));
+        RequestParser.parse(RequestGenerator.GET.generateRequest("/asd")).close();
     }
     
     @Test
     public void test_complex_request() throws Exception{
-        RequestParser.parse(RequestGenerator.GET.standardGet());
+        RequestParser.parse(RequestGenerator.GET.standardGet()).close();
     }
 }

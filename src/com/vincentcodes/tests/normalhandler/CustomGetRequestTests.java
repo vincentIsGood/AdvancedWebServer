@@ -7,6 +7,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -30,6 +31,9 @@ public class CustomGetRequestTests {
     private WebServer server;
     private HttpRequestDispatcher dispatcher;
 
+    private HttpRequest sampleRequest;
+    private ResponseBuilder response;
+
     @BeforeAll
     public void setup() throws IOException, ReflectiveOperationException{
         HttpHandlerRegister.clear();
@@ -44,31 +48,37 @@ public class CustomGetRequestTests {
     
     @Test
     public void requestmapping_less_response_positive() throws InvocationTargetException{
-        HttpRequest sampleRequest = RequestParser.parse(RequestGenerator.GET.generateRequest("/"));
-        ResponseBuilder response = dispatcher.dispatchObjectToHandlers(sampleRequest);
+        sampleRequest = RequestParser.parse(RequestGenerator.GET.generateRequest("/"));
+        response = dispatcher.dispatchObjectToHandlers(sampleRequest);
         assertEquals(200, response.getResponseCode());
     }
     
     @Test
     public void requestmapping_less_response_negative() throws InvocationTargetException{
-        HttpRequest sampleRequest = RequestParser.parse(RequestGenerator.GET.generateRequest("/asd"));
-        ResponseBuilder response = dispatcher.dispatchObjectToHandlers(sampleRequest);
+        sampleRequest = RequestParser.parse(RequestGenerator.GET.generateRequest("/asd"));
+        response = dispatcher.dispatchObjectToHandlers(sampleRequest);
         assertEquals(404, response.getResponseCode());
     }
     
     @Test
     public void requestmapping_less_response_negative2() throws InvocationTargetException{
-        HttpRequest sampleRequest = RequestParser.parse(RequestGenerator.POST.generateRequest("/", ""));
-        ResponseBuilder response = dispatcher.dispatchObjectToHandlers(sampleRequest);
+        sampleRequest = RequestParser.parse(RequestGenerator.POST.generateRequest("/", ""));
+        response = dispatcher.dispatchObjectToHandlers(sampleRequest);
         assertEquals(404, response.getResponseCode());
     }
 
     @Test
     public void requestmapping_response_positive() throws InvocationTargetException{
-        HttpRequest sampleRequest = RequestParser.parse(RequestGenerator.GET.generateRequest("/asd2"));
-        ResponseBuilder response = dispatcher.dispatchObjectToHandlers(sampleRequest);
+        sampleRequest = RequestParser.parse(RequestGenerator.GET.generateRequest("/asd2"));
+        response = dispatcher.dispatchObjectToHandlers(sampleRequest);
         assertEquals(200, response.getResponseCode());
         assertEquals("response", response.getBody().string());
+    }
+
+    @AfterEach
+    public void close() throws IOException{
+        if(sampleRequest != null) sampleRequest.close();
+        if(response != null) response.close();
     }
 
     @AfterAll

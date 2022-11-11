@@ -37,13 +37,7 @@ public class RequestParser {
         HttpHeaders headers = new HttpHeaders();
         HttpRequestBasicInfo basicInfo = null;
         MultipartFormData multipart = null;
-        HttpBody body;
-        try{
-            body = new HttpBodyFileStream();
-        }catch(IOException e){
-            e.printStackTrace();
-            body = new HttpBodyStream();
-        }
+        HttpBody body = new HttpBodyStream();
 
         // For the purpose of logging the whole request 
         // (Necessary? No, maybe I'll add an option to disable it)
@@ -83,12 +77,18 @@ public class RequestParser {
                             if(multipart == null)
                                 request.invalid();
                         }else{
-                            // TODO: create temporary file here first. Maybe we need a FileHandler obj?
-                            // TODO: we don't want a full length byte[] which takes up the whole RAM.
-                            byte[] content = new byte[length];
-                            reader.read(content);
-                            // wholeRequest.append(new String(content)).append('\n');
-                            body.writeToBody(content);
+                            // 64MB -> use tmp file
+                            if(length > 67108864){
+                                body = new HttpBodyFileStream();
+                                int sizeRead = 0;
+                                byte[] content = new byte[4096];
+                                while((sizeRead = reader.read(content)) != -1){
+                                    // wholeRequest.append(new String(content)).append('\n');
+                                    body.writeToBody(content, sizeRead);
+                                }
+                            }else{
+                                body.writeToBody(reader.readNBytes(length));
+                            }
                         }
                     }else if(basicInfo.getMethod().equals("PRI")){
                         // https://tools.ietf.org/html/rfc7540#section-3.5
@@ -154,6 +154,7 @@ public class RequestParser {
         while((line = reader.readLine()) != null){
             if(line.equals("--" + boundary)){
                 wholeRequest.append("--" + boundary).append("\n");
+                headers = new HttpHeaders();
                 startBody = false;
                 continue;
             }
@@ -170,7 +171,7 @@ public class RequestParser {
             }
 
             if(startBody){
-                HttpBody body = new HttpBodyStream();
+                HttpBody body = new HttpBodyFileStream();
                 byte[] content = reader.readBytesUntil("\r\n--" + boundary);
                 // If EOF is reached, do not do the processing
                 if(content == null) break;
@@ -180,7 +181,7 @@ public class RequestParser {
                 wholeRequest.append("--" + boundary);
                 wholeRequest.append(reader.readLine()).append("\n"); // skip the "\n" or "--\n"
                 // WebServer.logger.warn(wholeRequest.toString());
-                multipart.put(headers.getHeader("content-disposition"), body);
+                multipart.put(headers, body);
                 startBody = false;
                 String endString = "--" + boundary + "--";
                 if(wholeRequest.substring(wholeRequest.length()-endString.length()-2).lastIndexOf(endString) != -1)
