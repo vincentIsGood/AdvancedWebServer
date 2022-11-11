@@ -178,11 +178,12 @@ public class RequestParser {
                 // if(content == null) break;
                 // body.writeToBody(content);
 
-                ReadUntilResult result;
-                do{
-                    result = reader.readBytesUntil("\r\n--" + boundary, 4096);
+                ReadUntilResult result = reader.readBytesUntil("\r\n--" + boundary, 4096);
+                while(result.data() != null){
                     body.writeToBody(result.data());
-                }while(result.data() != null && !result.isMatchingStrFound());
+                    if(result.isMatchingStrFound()) break;
+                    result = reader.readBytesUntil("\r\n--" + boundary, 4096);
+                }
                 
                 // wholeRequest.append(body.string()).append("\n");
                 wholeRequest.append("--" + boundary);

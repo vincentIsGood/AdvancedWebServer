@@ -75,7 +75,6 @@ public class HttpBodyFileStream implements HttpBody {
             writtenCount += length;
         }
         fos.write(b, 0, length);
-        fos.flush();
     }
 
     /**
