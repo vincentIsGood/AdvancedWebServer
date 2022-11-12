@@ -104,8 +104,6 @@ public class TextBinaryInputStream extends InputStream{
         return bytes == null? null : new String(bytes);
     }
     /**
-     * 
-     * 
      * @param readSize read number of bytes out of the stream. readSize
      * must be at least the length of matchingStr
      * @return bytes read with the matching string excluded.

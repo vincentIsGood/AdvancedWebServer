@@ -36,7 +36,7 @@ public class CommonOpStrategyTest {
         HttpHandlerRegister.clear();
         HttpHandlerRegister.register(TestHandler.class);
         server = new WebServer.Builder()
-            .setHomeDirectory("D:\\Downloads_D\\zPrograms\\Java\\0_OwnProjects\\0_SmallPrograms\\AdvancedWebServer")
+            .setHomeDirectory("./")
             .setUseDefaultHandlers(false)
             .build();
         OperationStrategyFactory factory = new OperationStrategyFactory(server.getConfiguration());

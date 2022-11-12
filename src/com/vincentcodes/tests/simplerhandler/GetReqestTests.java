@@ -39,7 +39,7 @@ public class GetReqestTests {
         ExtensionRegister.clear();
         ExtensionRegister.register(TestSimpleHttpHandler.class);
         server = new WebServer.Builder()
-            .setHomeDirectory("C:/Users/vincent/Documents/zPrograms/Java/0_OwnProjects/0_SmallPrograms/AdvancedWebServer")
+            .setHomeDirectory("./")
             .build();
         OperationStrategyFactory factory = new OperationStrategyFactory(server.getConfiguration());
         dispatcher = HttpRequestDispatcher.createInstance(Arrays.asList(new SimplerHttpDispatcherOperation(factory.create(InvocationTypes.SIMPLER_HTTP))));

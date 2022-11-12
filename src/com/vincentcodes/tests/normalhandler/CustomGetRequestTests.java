@@ -26,7 +26,7 @@ import com.vincentcodes.webserver.dispatcher.operation.OperationStrategyFactory.
 import com.vincentcodes.webserver.dispatcher.operation.impl.HttpDispatcherOperation;
 
 @TestInstance(Lifecycle.PER_CLASS)
-@DisplayName("Testing class HttpHandlerInvocation")
+@DisplayName("Testing class CustomGetRequestTests")
 public class CustomGetRequestTests {
     private WebServer server;
     private HttpRequestDispatcher dispatcher;
@@ -39,7 +39,7 @@ public class CustomGetRequestTests {
         HttpHandlerRegister.clear();
         HttpHandlerRegister.register(CustomGetRequestHandler.class);
         server = new WebServer.Builder()
-            .setHomeDirectory("D:\\Downloads_D\\zPrograms\\Java\\0_OwnProjects\\0_SmallPrograms\\AdvancedWebServer")
+            .setHomeDirectory("./")
             .build();
         OperationStrategyFactory factory = new OperationStrategyFactory(server.getConfiguration());
         dispatcher = HttpRequestDispatcher.createInstance(Arrays.asList(new HttpDispatcherOperation(factory.create(InvocationTypes.NORMAL_HTTP))));
