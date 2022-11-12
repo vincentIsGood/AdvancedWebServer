@@ -17,8 +17,6 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '16'
-      - name: "[DEBUG] Printing current directory"
-        run: "ls -la"
       - name: Compiling sources
         run: "javac --release 11 -encoding UTF-8 -d classes/ -cp src:lib/*: $(find src/ -type f -name '*.java')"
       - name: Testing application

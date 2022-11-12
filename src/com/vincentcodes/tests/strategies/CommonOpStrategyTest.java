@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -62,5 +63,10 @@ public class CommonOpStrategyTest {
     public void close() throws IOException{
         if(sampleRequest != null) sampleRequest.close();
         if(response != null) response.close();
+    }
+
+    @AfterAll
+    public void closeEverything() throws IOException{
+        server.close();
     }
 }
