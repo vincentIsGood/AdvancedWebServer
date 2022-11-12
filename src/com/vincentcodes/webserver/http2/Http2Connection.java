@@ -82,7 +82,7 @@ public class Http2Connection {
 
             Optional<HttpRequest> optRequest = converter.toRequest();
             if(optRequest.isPresent()){
-                try(ResponseBuilder response = handleHttpRequest(optRequest.get())){
+                try(HttpRequest req = optRequest.get(); ResponseBuilder response = handleHttpRequest(req)){
                     List<Http2Frame> frames = converter.fromResponse(response);
                     // max frame count is used to prevent safari from requesting a humongous payload
                     int maxFrameAmount = (int)Math.floor((WebServer.MAX_PARTIAL_DATA_LENGTH+1)/config.getMaxFrameSize()) + Http2RequestConverter.getNonDataFrameCount(frames);

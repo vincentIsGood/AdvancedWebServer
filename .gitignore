@@ -1,5 +1,6 @@
 .idea
 .vscode
+.testcerts
 0_*
 classes/com
 sample*

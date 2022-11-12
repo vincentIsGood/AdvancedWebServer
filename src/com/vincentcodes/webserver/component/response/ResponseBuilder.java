@@ -127,7 +127,8 @@ public class ResponseBuilder implements Closeable {
 
     @Override
     public void close() throws IOException{
-        body.close();
+        if(body != null)
+            body.close();
     }
 
     /**

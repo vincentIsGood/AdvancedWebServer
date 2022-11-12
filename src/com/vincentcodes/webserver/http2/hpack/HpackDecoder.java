@@ -59,16 +59,12 @@ public class HpackDecoder {
             return null;
         
         if((identifierByte & 0b10000000) == 128){
-            // System.out.println("1");
             return decodeIndexedHeaderField(identifierByte, is);
         }else if((identifierByte & 0b11000000) == 0b01000000){
-            // System.out.println("2");
             return decodeLiteralWithIndexing(identifierByte, is);
         }else if((identifierByte & 0b11110000) == 0){
-            // System.out.println("3");
             return decodeLiteralWithoutIndexing(identifierByte, is);
         }else if((identifierByte & 0b11110000) == 0b00010000){
-            // System.out.println("4");
             return decodeLiteralNeverIndexed(identifierByte, is);
         }else if((identifierByte & 0b11100000) == 0b00100000){
             // 6.3 Dynamic Table Size Update

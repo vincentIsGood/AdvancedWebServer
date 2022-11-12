@@ -98,7 +98,8 @@ public class HttpRequest implements Closeable{
     @Override
     public void close() throws IOException {
         try{
-            body.close();
+            if(body != null)
+                body.close();
         }catch(IOException e){
             e.printStackTrace();
             throw e;

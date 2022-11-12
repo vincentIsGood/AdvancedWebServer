@@ -39,7 +39,7 @@ public class PostRequestTests {
         ExtensionRegister.clear();
         ExtensionRegister.register(TestPostRequestHandler.class);
         server = new WebServer.Builder()
-            .setHomeDirectory("D:\\Downloads_D\\zPrograms\\Java\\0_OwnProjects\\0_SmallPrograms\\AdvancedWebServer")
+            .setHomeDirectory("./")
             .build();
         OperationStrategyFactory factory = new OperationStrategyFactory(server.getConfiguration());
         dispatcher = HttpRequestDispatcher.createInstance(Arrays.asList(new HttpDispatcherOperation(factory.create(InvocationTypes.NORMAL_HTTP))));

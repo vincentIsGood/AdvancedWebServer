@@ -3,6 +3,7 @@ package com.vincentcodes.tests.normalhandler;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
@@ -27,7 +28,7 @@ import com.vincentcodes.webserver.dispatcher.operation.OperationStrategyFactory.
 import com.vincentcodes.webserver.dispatcher.operation.impl.HttpDispatcherOperation;
 
 @TestInstance(Lifecycle.PER_CLASS)
-@DisplayName("Testing class HttpHandlerInvocation")
+@DisplayName("Testing class DefaultGetRequestTests")
 public class DefaultGetRequestTests {
     private WebServer server;
     private HttpRequestDispatcher dispatcher;
@@ -39,7 +40,7 @@ public class DefaultGetRequestTests {
     public void setup() throws IOException{
         HttpHandlerRegister.clear();
         server = new WebServer.Builder()
-            .setHomeDirectory("D:\\Downloads_D\\zPrograms\\Java\\0_OwnProjects\\0_SmallPrograms\\AdvancedWebServer")
+            .setHomeDirectory("./")
             .build();
         OperationStrategyFactory factory = new OperationStrategyFactory(server.getConfiguration());
         dispatcher = HttpRequestDispatcher.createInstance(Arrays.asList(new HttpDispatcherOperation(factory.create(InvocationTypes.NORMAL_HTTP))));
@@ -48,10 +49,11 @@ public class DefaultGetRequestTests {
 
     @Test
     public void test_response_got_modified() throws InvocationTargetException{
-        sampleRequest = RequestParser.parse(RequestGenerator.GET.generateRequest("/readme.txt"));
+        sampleRequest = RequestParser.parse(RequestGenerator.GET.generateRequest("/README.md"));
         response = dispatcher.dispatchObjectToHandlers(sampleRequest);
+        System.out.println(new File("./").getAbsolutePath());
         assertEquals(200, response.getResponseCode());
-        assertTrue(response.getBody().string().contains("Project Name: Vincent Web Server"));
+        assertTrue(response.getBody().string().contains("Advanced Web Server"));
     }
 
     @Test
