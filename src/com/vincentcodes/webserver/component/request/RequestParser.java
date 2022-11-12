@@ -57,8 +57,6 @@ public class RequestParser {
             // }
 
             while((line = reader.readLine()) != null){
-                // System.out.println(line); // if something went wrong, uncomment this to debug.
-                
                 wholeRequest.append(line).append("\r\n");
                 if(line.isEmpty()){
                     requestBodyIncoming = true;

@@ -23,8 +23,6 @@ public class ResponseParser {
             boolean requestBodyIncoming = false;
             String line;
             while((line = reader.readLine()) != null){
-                // System.out.println(line); // if something went wrong, uncomment this to debug.
-                
                 if(line.isEmpty()){
                     requestBodyIncoming = true;
                 }
