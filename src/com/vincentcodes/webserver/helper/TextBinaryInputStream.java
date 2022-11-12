@@ -50,7 +50,7 @@ public class TextBinaryInputStream extends InputStream{
      * the current platform's default charset. Null if EOF is reached.
      */
     public String readLine() throws IOException {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ByteArrayOutputStream baos = new ByteArrayOutputStream(64);
         int byteRead = read();
         if(byteRead == -1) 
             return null;
@@ -76,14 +76,14 @@ public class TextBinaryInputStream extends InputStream{
      * Null if EOF has already reached.
      */
     public String readUntil(char c, int skipCount) throws IOException {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ByteArrayOutputStream baos = new ByteArrayOutputStream(64);
         int skipped = 0;
         int byteRead = read();
         if(byteRead == -1) 
             return null;
         for(;;byteRead = read()){
             if(byteRead == -1) 
-                return new String(baos.toByteArray()).intern();
+                return new String(baos.toByteArray());
             if(byteRead == c){
                 if(skipped == skipCount)
                     break;
@@ -91,7 +91,7 @@ public class TextBinaryInputStream extends InputStream{
             }
             baos.write(byteRead);
         }
-        return new String(baos.toByteArray()).intern();
+        return new String(baos.toByteArray());
     }
 
     /**
@@ -101,7 +101,7 @@ public class TextBinaryInputStream extends InputStream{
      */
     public String readUntil(String matchingStr) throws IOException {
         byte[] bytes = readBytesUntil(matchingStr);
-        return bytes == null? null : new String(bytes).intern();
+        return bytes == null? null : new String(bytes);
     }
     /**
      * 
@@ -120,9 +120,12 @@ public class TextBinaryInputStream extends InputStream{
             return new ReadUntilResult(readBytesUntilPure(matchingStr), false);
         if(readSize - matchingStrBytes.length < 0)
             throw new IllegalArgumentException("readSize must be at least the length of matchingStr");
+        
+        int baosSize = readSize + matchingStr.length();
         ByteArrayOutputStream baos;
         if(prevBuf != null) baos = prevBuf;
-        else baos = new ByteArrayOutputStream();
+        else baos = new ByteArrayOutputStream(baosSize);
+
         int matchingCharAt = 0;
         boolean found = false;
         int byteRead = read();
@@ -149,7 +152,7 @@ public class TextBinaryInputStream extends InputStream{
                 if(baos.size() > readSize){
                     byte[] largeArray = baos.toByteArray();
                     byte[] result = Arrays.copyOfRange(largeArray, 0, readSize);
-                    prevBuf = new ByteArrayOutputStream();
+                    prevBuf = new ByteArrayOutputStream(baosSize);
                     prevBuf.write(Arrays.copyOfRange(largeArray, readSize, largeArray.length));
                     return new ReadUntilResult(result, false);
                 }

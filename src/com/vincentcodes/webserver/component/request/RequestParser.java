@@ -171,11 +171,6 @@ public class RequestParser {
 
             if(startBody){
                 HttpBody body = new HttpBodyFileStream();
-                // byte[] content = reader.readBytesUntil("\r\n--" + boundary);
-                // // If EOF is reached, do not do the processing
-                // if(content == null) break;
-                // body.writeToBody(content);
-
                 ReadUntilResult result = reader.readBytesUntil("\r\n--" + boundary, 4096);
                 while(result.data() != null){
                     body.writeToBody(result.data());
