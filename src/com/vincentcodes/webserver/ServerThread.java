@@ -148,9 +148,10 @@ public class ServerThread extends Thread{
             WebServer.logger.debug("\n" + resHeadersString.replaceAll("\r\n", "\n"));
             
             if(response.getBody().length() > 0){
-                initWriteTimeout(os, WebServer.CONNECTION_WRITE_TIMEOUT_MILSEC);
+                TimeoutThread writeTimeout = initWriteTimeout(os, WebServer.CONNECTION_WRITE_TIMEOUT_MILSEC);
                 // os.write(response.getBody().getBytes());
                 response.getBody().streamBytesTo(os);
+                writeTimeout.tryStop();
             }
         }
         
@@ -186,16 +187,20 @@ public class ServerThread extends Thread{
         }
     }
 
-    private void initWriteTimeout(OutputStream os, int milsec){
-        new Thread("Write Timeout"){
-            public void run(){
-                try{
-                    Thread.sleep(milsec);
-                    if(currentProtocol == WebProtocol.HTTP_ORIGINAL)
-                        os.close();
-                }catch(Exception e){}
-                return;
-            }
-        }.start();
+    /**
+     * @return a thread which has already began its execution
+     */
+    private TimeoutThread initWriteTimeout(OutputStream os, int milsec){
+        TimeoutThread timeoutThread = new TimeoutThread(milsec, (isThreadStopping)->{
+            if(isThreadStopping) return;
+            if(currentProtocol == WebProtocol.HTTP_ORIGINAL)
+                try {
+                    os.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+        });
+        timeoutThread.start();
+        return timeoutThread;
     }
 }

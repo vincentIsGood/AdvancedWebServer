@@ -17,6 +17,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import com.vincentcodes.logger.Logger;
+import com.vincentcodes.net.SSLUpgrader;
 import com.vincentcodes.webserver.annotaion.AutoInjected;
 import com.vincentcodes.webserver.annotaion.Unreferenced;
 import com.vincentcodes.webserver.annotaion.request.HttpConnect;
@@ -44,7 +45,6 @@ import com.vincentcodes.webserver.helper.ObjectPool;
 import com.vincentcodes.webserver.helper.loader.JarLoader;
 import com.vincentcodes.webserver.helper.loader.JarRegister;
 import com.vincentcodes.webserver.reflect.MethodDecorator;
-import com.vincentcodes.webserver.ssl.SSLUpgrader;
 
 /**
  * <p>
@@ -172,8 +172,8 @@ public class WebServer {
         injectDependencies();
 
         logger.info("Web Server started on port " + serverSocket.getLocalPort());
-        logger.debug("Connection read timeout is set to " + CONNECTION_READ_TIMEOUT_MILSEC + "ms");
-        logger.debug("Connection write timeout is set to " + CONNECTION_WRITE_TIMEOUT_MILSEC + "ms");
+        logger.info("Connection read timeout is set to " + CONNECTION_READ_TIMEOUT_MILSEC + "ms");
+        logger.info("Connection write timeout is set to " + CONNECTION_WRITE_TIMEOUT_MILSEC + "ms");
 
         int countTillGc = 0;
         while (true) {
