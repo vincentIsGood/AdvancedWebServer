@@ -9,6 +9,7 @@ import com.vincentcodes.util.commandline.CommandLineParser;
 import com.vincentcodes.util.commandline.ParserConfig;
 import com.vincentcodes.webserver.defaults.DownloadOnlyHandler;
 
+// TODO: add logging to low level shit http2
 public class Main{
     private static ParserConfig config;
 
@@ -114,10 +115,10 @@ public class Main{
             serverBuilder.setUseMultithread(true);
         }
 
-        // if(cmd.hasOption("--debug")){
-        //     int verbosity = Integer.parseInt(cmd.getOptionValue("--debug"));
-        //     serverBuilder.setUseMultithread(true);
-        // }
+        if(cmd.hasOption("--debug")){
+            // int verbosity = Integer.parseInt(cmd.getOptionValue("--debug"));
+            throw new UnsupportedOperationException("'--debug' not implemented");
+        }
 
         if(serverBuilder != null){
             WebServer server = serverBuilder.build();
