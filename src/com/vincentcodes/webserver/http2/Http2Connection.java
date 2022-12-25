@@ -24,6 +24,7 @@ import com.vincentcodes.webserver.http2.types.GoAwayFrame;
 import com.vincentcodes.webserver.http2.types.PingFrame;
 import com.vincentcodes.webserver.http2.types.PriorityFrame;
 import com.vincentcodes.webserver.http2.types.SettingsFrame;
+import com.vincentcodes.webserver.http2.types.WindowUpdateFrame;
 
 // TODO: stream dependency, errors, are still not implemented yet.
 /**
@@ -77,8 +78,8 @@ public class Http2Connection {
      * @see Http2Stream#process()
      */
     private void universalInputHandler(Http2Stream stream, Http2Frame frame) throws IOException, InvocationTargetException{
-        // if(!(frame.payload instanceof WindowUpdateFrame))
-        //     WebServer.logger.debug("Recv: " + frame.toString());
+        if(!(frame.payload instanceof WindowUpdateFrame))
+            WebServer.logger.debug("Recv: " + frame.toString());
 
         Http2RequestConverter converter = stream.getConverter();
         
@@ -128,8 +129,8 @@ public class Http2Connection {
      * @see Http2Stream#send()
      */
     private void universalOutputHandler(Http2Stream stream, Http2Frame frame) throws IOException, InvocationTargetException{
-        // if(!(frame.payload instanceof WindowUpdateFrame))
-        //     WebServer.logger.debug("Send: " + frame.toString());
+        if(!(frame.payload instanceof WindowUpdateFrame))
+            WebServer.logger.debug("Send: " + frame.toString());
         
         os.write(frame.toBytes());
     }
