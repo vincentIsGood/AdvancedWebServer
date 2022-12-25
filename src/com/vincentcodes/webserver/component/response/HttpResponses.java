@@ -12,7 +12,7 @@ import com.vincentcodes.webserver.component.header.HttpHeaders;
 import com.vincentcodes.webserver.dispatcher.operation.DispatcherOperation;
 import com.vincentcodes.webserver.util.FileExtUtils;
 
-//TODO: Search for FileInputStream and replace the reading code with write(length)
+//TODO: Search for FileInputStream and do not allow them to put whole file in memory
 /**
  * This class returns common http responses. It is used in
  * implementations of {@link DispatcherOperation}.

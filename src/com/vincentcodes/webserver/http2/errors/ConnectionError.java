@@ -1,6 +1,5 @@
 package com.vincentcodes.webserver.http2.errors;
 
-// TODO: this must be a checked exception
 public class ConnectionError extends RuntimeException {
     public ConnectionError() {
         super();
