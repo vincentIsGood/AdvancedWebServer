@@ -27,6 +27,11 @@ public interface HttpBody extends Closeable{
 
     public byte[] getBytes(int length);
 
+    /**
+     * Available bytes to be read from the stream
+     */
+    public int available() throws IOException;
+
     public String string();
 
     public void streamBytesTo(OutputStream os) throws IOException;

@@ -84,9 +84,13 @@ public class WebServer {
     public static final int MAX_HTTP2_STREAMS_INDEX = 65536-1; // default: 2**31-1
 
     /**
-     * 2 MB (used for streaming files, including the starting byte)
+     * 1 MiB (used for streaming files, including the starting byte)
      */
-    public static final int MAX_PARTIAL_DATA_LENGTH = 1024 * 1024 * 2 -1;
+    // public static final int MAX_PARTIAL_DATA_LENGTH = 1024 * 1024 -1;
+    /**
+     * 512 KiB (used for streaming files, including the starting byte)
+     */
+    public static final int MAX_PARTIAL_DATA_LENGTH = 1024 * 512 -1;
     // public static final int MAX_PARTIAL_DATA_LENGTH = 16084;
 
     public static final Logger logger = new Logger("logs/output", false, true){

@@ -138,19 +138,23 @@ public class Http2RequestConverter {
         return Optional.empty();
     }
 
-    public List<Http2Frame> fromResponse(ResponseBuilder response){
+    // TODO: low performance issue here...
+    // TODO: do not buffer the frames to a List. Instead, send them all out when ready
+    public List<Http2Frame> fromResponse(ResponseBuilder response, int maxDataFrameAmount){
         List<Http2Frame> frames = new ArrayList<>();
         if(response.getHeaders().getEntityInfo().getLength() > 0){
             frames.add(frameGenerator.responseHeadersFrame(response.getResponseCode(), response.getHeaders(), -1, true, false));
             // Make sure we send at least 10000 bytes to keep up with the streaming service.
             int dataSize = config.getMaxFrameSize()/2 < 10000? config.getMaxFrameSize() : config.getMaxFrameSize()/2;
-            byte[] data;
             boolean endOfStream = false;
-            while(!endOfStream){
-                data = response.getBody().getBytes(dataSize);
-                endOfStream = data.length != dataSize;
-                frames.add(frameGenerator.dataFrame(data, -1, endOfStream));
+            int dataFrameCount = 0;
+            while(!endOfStream && dataFrameCount < maxDataFrameAmount){
+                // use getBytes(buf) to not load the whole file into memory
+                byte[] data = response.getBody().getBytes(dataSize);
+                frames.add(frameGenerator.dataFrame(data, -1, endOfStream = data.length != dataSize));
+                dataFrameCount++;
             }
+            // Working code... (don't delete please)
             // byte[] resBody = response.getBody().getBytes();
             // int nextIndex = 0;
             // for(; nextIndex < resBody.length - dataSize; nextIndex += dataSize){

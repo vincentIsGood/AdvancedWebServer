@@ -91,6 +91,11 @@ public class HttpBodyFileStream implements HttpBody {
         return result;
     }
 
+    @Override
+    public int available() throws IOException{
+        return fis.available();
+    }
+
     /**
      * Once this method is invoked, {@link DeflaterOutputStream#finish()} is invoked
      * inside the method to indicate end of compression. 
