@@ -18,6 +18,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.vincentcodes.logger.Logger;
 import com.vincentcodes.net.SSLUpgrader;
+import com.vincentcodes.net.UpgradableSocket;
 import com.vincentcodes.webserver.annotaion.AutoInjected;
 import com.vincentcodes.webserver.annotaion.Unreferenced;
 import com.vincentcodes.webserver.annotaion.request.HttpConnect;
@@ -141,12 +142,13 @@ public class WebServer {
                 logger.warn("Force http2 on all connections");
             }
             SSLUpgrader upgrader = new SSLUpgrader(configuration.keyStoreFile, configuration.keyStorePassword);
+            UpgradableSocket.setSSLUpgrader(upgrader);
             upgrader.createSSLContext();
-            this.serverSocket = upgrader.getSSLServerSocket(configuration.port);
         }else{
             logger.warn("Creating a non-ssl webserver");
-            this.serverSocket = new ServerSocket(configuration.port);
         }
+        // allow server take in raw bytes, and detect if SSL/TLS is needed
+        this.serverSocket = new ServerSocket(configuration.port);
 
         executorService = configuration.useMultithread()? 
             Executors.newFixedThreadPool(MAX_THREAD_POOL_SIZE) : 
@@ -178,7 +180,7 @@ public class WebServer {
         int countTillGc = 0;
         while (true) {
             try{
-                ServerThread thread = new ServerThread(serverSocket.accept(), configuration, requestValidator, requestDispatcher);
+                ServerThread thread = new ServerThread(new UpgradableSocket(serverSocket.accept()), configuration, requestValidator, requestDispatcher);
                 executorService.execute(thread);
             }catch(Exception e){
                 WebServer.logger.err("Catching a "+e.getClass().getName()+": " + e.getMessage());

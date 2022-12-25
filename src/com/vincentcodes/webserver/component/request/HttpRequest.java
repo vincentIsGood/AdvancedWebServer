@@ -115,11 +115,15 @@ public class HttpRequest implements Closeable{
             }
         }
     }
+    
+    public String toHttpString(){
+        return toHttpString("HTTP/1.1", this);
+    }
 
     /**
      * excludes the "?"
      */
-    private String rebuildPathParameters() throws UnsupportedEncodingException{
+    private static String rebuildPathParameters(HttpRequestBasicInfo basicInfo) throws UnsupportedEncodingException{
         HashMap<String,String> params = basicInfo.getParameters();
         if(params.size() == 0){
             return "";
@@ -134,20 +138,21 @@ public class HttpRequest implements Closeable{
         builder.deleteCharAt(builder.length()-1);
         return builder.toString();
     }
-
-    private String toHttpString(String version){
+    public static String rebuildPath(HttpRequestBasicInfo basicInfo) throws UnsupportedEncodingException{
+        return URLEncoder.encode(basicInfo.getPath().get(), "utf-8").replaceAll("%2F", "/") + rebuildPathParameters(basicInfo);
+    }
+    public static String toHttpString(String version, HttpRequest request){
         StringBuilder builder = new StringBuilder();
+        HttpRequestBasicInfo basicInfo = request.getBasicInfo();
+        HttpHeaders headers = request.getHeaders();
         try{
             // eg. GET /asd.html HTTP/1.1
-            builder.append(basicInfo.getMethod() + " " + URLEncoder.encode(basicInfo.getPath().get(), "utf-8").replaceAll("%2F", "/") + rebuildPathParameters() + " " + version + "\r\n");
+            builder.append(basicInfo.getMethod() + " " + rebuildPath(basicInfo) + " " + version + "\r\n");
             for(Map.Entry<String, String> entry : headers.getHeaders().entrySet()){
                 builder.append(entry.getKey() + ": " + entry.getValue() + "\r\n");
             }
             builder.append("\r\n");
         }catch(Exception ignored){}
         return builder.toString();
-    }
-    public String toHttpString(){
-        return toHttpString("HTTP/1.1");
     }
 }

@@ -8,6 +8,7 @@ import java.net.Socket;
 import java.util.List;
 import java.util.Optional;
 
+import com.vincentcodes.net.UpgradableSocket;
 import com.vincentcodes.webserver.WebServer;
 import com.vincentcodes.webserver.component.request.HttpRequest;
 import com.vincentcodes.webserver.component.request.HttpRequestValidator;
@@ -32,7 +33,7 @@ public class Http2Connection {
     public static final int WINDOW_UPDATE_AMOUNT = 32768;
 
     private IOContainer ioContainer;
-    private Socket connection;
+    private UpgradableSocket connection;
     private StreamStore streamStore;
 
     private HttpRequestValidator requestValidator;
@@ -163,7 +164,7 @@ public class Http2Connection {
         return HttpResponses.generate400Response();
     }
 
-    public Socket getConnection() {
+    public UpgradableSocket getConnection() {
         return connection;
     }
 
@@ -172,14 +173,15 @@ public class Http2Connection {
     }
 
     public boolean isConnected(){
-        return !(connection.isInputShutdown() || connection.isOutputShutdown());
+        Socket conn = connection.getUnderlyingSocket();
+        return !(conn.isInputShutdown() || conn.isOutputShutdown());
     }
     
     private void initConnectionChecker(){
         new Thread("Http2 Connection Checker"){
             public void run(){
                 try{
-                    Socket socket = ioContainer.getSocket();
+                    UpgradableSocket socket = ioContainer.getSocket();
                     while(!socket.isClosed()){
                         if(pingSent) socket.close();
                         sendPing();
