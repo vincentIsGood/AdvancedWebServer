@@ -60,15 +60,16 @@ import com.vincentcodes.webserver.reflect.MethodDecorator;
  * create a more robust and modifiable version of webserver built from Java 
  * ground up.
  * <p>
- * I was not willing to make this project go public. I will evaluate this  
- * statement again since I would like it to improve and help people who wants 
- * a lightweight webserver. 
+ * I was not willing to make this project go public. I will re-evaluate this  
+ * statement again since I would like it to improve it and let those who wants 
+ * a lightweight webserver to use it.
  * <p>
  * One more important factor to make the project public is for my future
  * career. I spent lots of time improving the server and I want people to know 
- * it.
+ * it. Improvements == Programming skill enhancement (Level Up!)
  * <p>
- * {@link WebServer} is the entry point.
+ * {@link Main} is the entry point. It calls {@link WebServer}.
+ * 
  * @author Vincent Ko
  */
 // TODO: use event loop for webserver.
@@ -87,9 +88,9 @@ public class WebServer {
      * You need at least 1MiB to keep the streaming service running smooth
      * (esp. for video streaming service)
      * 
-     * 5 MiB (used for streaming files, including the starting byte)
+     * 2 MiB (used for streaming files, including the starting byte)
      */
-    public static final int MAX_PARTIAL_DATA_LENGTH = 1024 * 1024 * 5 -1;
+    public static final int MAX_PARTIAL_DATA_LENGTH = 1024 * 1024 * 2 -1;
 
     public static final Logger logger = new Logger("logs/output", false, true){
         {
