@@ -1,6 +1,5 @@
 package com.vincentcodes.webserver.http2.errors;
 
-// TODO: this must be a checked exception
 public class StreamError extends RuntimeException {
     public StreamError() {
         super();

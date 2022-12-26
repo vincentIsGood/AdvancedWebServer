@@ -130,7 +130,7 @@ public class Main{
     }
 
     public static void printHelp(){
-        System.out.println("java -jar webserver.jar <download / ssl> [options]");
+        System.out.println("java -jar webserver.jar [<download / ssl>] [options]");
         System.out.println(config.getOptionsHelpString());
     }
 

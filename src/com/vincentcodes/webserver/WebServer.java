@@ -18,6 +18,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.vincentcodes.logger.Logger;
 import com.vincentcodes.net.SSLUpgrader;
+import com.vincentcodes.net.UpgradableSocket;
 import com.vincentcodes.webserver.annotaion.AutoInjected;
 import com.vincentcodes.webserver.annotaion.Unreferenced;
 import com.vincentcodes.webserver.annotaion.request.HttpConnect;
@@ -59,15 +60,16 @@ import com.vincentcodes.webserver.reflect.MethodDecorator;
  * create a more robust and modifiable version of webserver built from Java 
  * ground up.
  * <p>
- * I was not willing to make this project go public. I will evaluate this  
- * statement again since I would like it to improve and help people who wants 
- * a lightweight webserver. 
+ * I was not willing to make this project go public. I will re-evaluate this  
+ * statement again since I would like it to improve it and let those who wants 
+ * a lightweight webserver to use it.
  * <p>
  * One more important factor to make the project public is for my future
  * career. I spent lots of time improving the server and I want people to know 
- * it.
+ * it. Improvements == Programming skill enhancement (Level Up!)
  * <p>
- * {@link WebServer} is the entry point.
+ * {@link Main} is the entry point. It calls {@link WebServer}.
+ * 
  * @author Vincent Ko
  */
 // TODO: use event loop for webserver.
@@ -83,10 +85,12 @@ public class WebServer {
     public static final int MAX_HTTP2_STREAMS_INDEX = 65536-1; // default: 2**31-1
 
     /**
-     * 2 MB (used for streaming files, including the starting byte)
+     * You need at least 1MiB to keep the streaming service running smooth
+     * (esp. for video streaming service)
+     * 
+     * 2 MiB (used for streaming files, including the starting byte)
      */
     public static final int MAX_PARTIAL_DATA_LENGTH = 1024 * 1024 * 2 -1;
-    // public static final int MAX_PARTIAL_DATA_LENGTH = 16084;
 
     public static final Logger logger = new Logger("logs/output", false, true){
         {
@@ -141,12 +145,13 @@ public class WebServer {
                 logger.warn("Force http2 on all connections");
             }
             SSLUpgrader upgrader = new SSLUpgrader(configuration.keyStoreFile, configuration.keyStorePassword);
+            UpgradableSocket.setSSLUpgrader(upgrader);
             upgrader.createSSLContext();
-            this.serverSocket = upgrader.getSSLServerSocket(configuration.port);
         }else{
             logger.warn("Creating a non-ssl webserver");
-            this.serverSocket = new ServerSocket(configuration.port);
         }
+        // allow server take in raw bytes, and detect if SSL/TLS is needed
+        this.serverSocket = new ServerSocket(configuration.port);
 
         executorService = configuration.useMultithread()? 
             Executors.newFixedThreadPool(MAX_THREAD_POOL_SIZE) : 
@@ -178,7 +183,7 @@ public class WebServer {
         int countTillGc = 0;
         while (true) {
             try{
-                ServerThread thread = new ServerThread(serverSocket.accept(), configuration, requestValidator, requestDispatcher);
+                ServerThread thread = new ServerThread(new UpgradableSocket(serverSocket.accept()), configuration, requestValidator, requestDispatcher);
                 executorService.execute(thread);
             }catch(Exception e){
                 WebServer.logger.err("Catching a "+e.getClass().getName()+": " + e.getMessage());

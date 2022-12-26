@@ -6,13 +6,12 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.lang.reflect.InvocationTargetException;
-import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.util.Optional;
 
 import javax.net.ssl.SSLParameters;
-import javax.net.ssl.SSLSocket;
 
+import com.vincentcodes.net.UpgradableSocket;
 import com.vincentcodes.webserver.component.request.HttpRequest;
 import com.vincentcodes.webserver.component.request.HttpRequestValidator;
 import com.vincentcodes.webserver.component.request.RequestParser;
@@ -22,14 +21,14 @@ import com.vincentcodes.webserver.dispatcher.HttpRequestDispatcher;
 import com.vincentcodes.webserver.exception.CannotParseRequestException;
 import com.vincentcodes.webserver.helper.IOContainer;
 import com.vincentcodes.webserver.http2.Http2Connection;
+import com.vincentcodes.webserver.util.HttpRedirecter;
 import com.vincentcodes.websocket.WebSocket;
 import com.vincentcodes.websocket.WebSocketHandlerSelector;
 import com.vincentcodes.websocket.handler.WebSocketOperator;
 
 public class ServerThread extends Thread{
-    private final WebServer.Configuration configuration;
-    private Socket clientConnection;
-    private SSLSocket sslConnection;
+    private final WebServer.Configuration serverConfig;
+    private UpgradableSocket clientConnection;
     private String clientIpWithPort;
     private HttpRequestValidator requestValidator;
     private HttpRequestDispatcher requestDispatcher;
@@ -45,48 +44,63 @@ public class ServerThread extends Thread{
 
     /**
      * Creates a new server thread which deals with ONE TASK, which is handling an http request
-     * @param clientConnection This can be {SSLSocket | Socket}
+     * @param clientConnection
      * @param requestValidator
      * @param requestDispatcher
      */
-    public ServerThread(Socket clientConnection, WebServer.Configuration configuration, HttpRequestValidator requestValidator, HttpRequestDispatcher requestDispatcher){
+    public ServerThread(UpgradableSocket clientConnection, WebServer.Configuration configuration, HttpRequestValidator requestValidator, HttpRequestDispatcher requestDispatcher){
         this.clientConnection = clientConnection;
         this.requestValidator = requestValidator;
         this.requestDispatcher = requestDispatcher;
-        this.configuration = configuration;
+        this.serverConfig = configuration;
 
         this.clientIpWithPort = clientConnection.getInetAddress().getHostAddress() + ":" + clientConnection.getPort();
     }
 
-    // May create a new class out of these configurations?
-    private void configureConnection() throws IOException{
+    /**
+     * @return whether configuration is successful
+     */
+    private boolean configureConnection() throws IOException{
+        clientConnection.setClientMode(false);
+        clientConnection.setSSLConfiguerer(this::configureSSL);
+        boolean isClientUsingSSL = clientConnection.upgrade();
+
+        // client uses http but server uses https scheme
+        if(!isClientUsingSSL && serverConfig.useSSL()){
+            // redirect user back to https scheme
+            HttpRequest request = RequestParser.parse(clientConnection.getInputStream());
+            String newPath = "https://" + request.getHeaders().getHeader("host") + HttpRequest.rebuildPath(request.getBasicInfo());
+            ResponseBuilder response = HttpResponses.createDefault();
+            HttpRedirecter.permanentRedirect(request, response, newPath);
+            httpReplyClient(response, clientConnection.getOutputStream());
+            return false;
+        }
+
         this.socketIOContainer = new IOContainer(clientConnection, 
             new BufferedInputStream(clientConnection.getInputStream()), 
             clientConnection.getOutputStream());
-        clientConnection.setSoTimeout(WebServer.CONNECTION_READ_TIMEOUT_MILSEC);
+        clientConnection.getUnderlyingSocket().setSoTimeout(WebServer.CONNECTION_READ_TIMEOUT_MILSEC);
+        return true;
     }
-    private void configureSSL() throws IOException{
+    private void configureSSL(SSLParameters sslParams){
         // SSL ALPN enabled protocols are set here...
         // Application-Layer Protocol Negotiation
         // https://tools.ietf.org/html/rfc7540#section-3.5
-        if(clientConnection instanceof SSLSocket){
-            sslConnection = ((SSLSocket)clientConnection);
-            SSLParameters sslParams = sslConnection.getSSLParameters();
-            // h2c will not be implemented.
-            if(configuration.forceHttp2())
-                sslParams.setApplicationProtocols(new String[]{"h2", "http/1.1"}); // prefer h2
-            else
-                sslParams.setApplicationProtocols(new String[]{"http/1.1"});
-            sslConnection.setSSLParameters(sslParams);
-            sslConnection.startHandshake();
-        }
+        //
+        // h2c will not be implemented.
+        if(serverConfig.forceHttp2())
+            sslParams.setApplicationProtocols(new String[]{"h2", "http/1.1"}); // prefer h2
+        else sslParams.setApplicationProtocols(new String[]{"http/1.1"});
     }
 
     public void run(){
         WebServer.logger.debug("Connection incoming from " + clientIpWithPort);
         try{
-            configureConnection();
-            configureSSL();
+            // check if the user is using SSL or HTTP/1.1
+            //
+            // if server enforces HTTPS, redirect HTTP/1.1 clients to HTTPS scheme
+            if(!configureConnection())
+                return;
 
             handleHttpConnection();
 
@@ -98,15 +112,14 @@ public class ServerThread extends Thread{
             }
         }catch(Exception e){
             WebServer.logger.err("Catching a "+e.getClass().getName()+": " + e.getMessage());
-            if(!WebServer.canIgnoreException(e)){
+            if(!WebServer.canIgnoreException(e))
                 e.printStackTrace();
-            }
         }finally{
             try{
                 clientConnection.close();
-                WebServer.logger.debug("Connection with host " + clientIpWithPort + " closed.");
+                WebServer.logger.debug("Connection with host " + clientIpWithPort + " closed");
             }catch(IOException e){
-                WebServer.logger.err("Cannot close connection.");
+                WebServer.logger.err("Cannot close connection with host " + clientIpWithPort);
                 e.printStackTrace();
                 throw new UncheckedIOException(e);
             }
@@ -131,10 +144,11 @@ public class ServerThread extends Thread{
                 // upgrade stuff (both party agrees to upgrade)
                 String responseUpgradeHeader = response.getHeaders().getHeader("upgrade");
                 String requestUpgradeHeader = request.getHeaders().getHeader("upgrade");
+                String currentAppProtocol = clientConnection.getApplicationProtocol();
                 if(responseUpgradeHeader != null && requestUpgradeHeader != null){
                     if(responseUpgradeHeader.equals("websocket") && requestUpgradeHeader.equals("websocket"))
                         currentProtocol = WebProtocol.WEB_SOCKET;
-                }else if(sslConnection != null && sslConnection.getApplicationProtocol().equals("h2")){
+                }else if(currentAppProtocol != null && currentAppProtocol.equals("h2")){
                     currentProtocol = WebProtocol.HTTP_TWO;
                 }
             }else{
@@ -142,6 +156,16 @@ public class ServerThread extends Thread{
             }
         }
 
+        httpReplyClient(response, os);
+
+        // in http2, websocket they have their own ping/pong mechanism
+        clientConnection.getUnderlyingSocket().setSoTimeout(0);
+    }
+    /**
+     * @param response [be closed] response to be sent
+     * @param os send response to this output stream
+     */
+    private void httpReplyClient(ResponseBuilder response, OutputStream os) throws IOException{
         try(response){
             String resHeadersString = response.asString();
             os.write(resHeadersString.getBytes());
@@ -154,8 +178,6 @@ public class ServerThread extends Thread{
                 writeTimeout.tryStop();
             }
         }
-        
-        clientConnection.setSoTimeout(0);
     }
 
     /**

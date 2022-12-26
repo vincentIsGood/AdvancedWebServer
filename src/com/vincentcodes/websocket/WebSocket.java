@@ -1,8 +1,9 @@
 package com.vincentcodes.websocket;
 
+import java.io.Closeable;
 import java.io.IOException;
-import java.net.Socket;
 
+import com.vincentcodes.net.UpgradableSocket;
 import com.vincentcodes.webserver.WebServer;
 import com.vincentcodes.webserver.component.request.HttpRequestPath;
 import com.vincentcodes.webserver.helper.IOContainer;
@@ -99,7 +100,7 @@ public class WebSocket {
      * Closes the underlying socket. Be very careful.
      */
     public void close() throws IOException{
-        Socket socket = ioContainer.getSocket();
+        Closeable socket = ioContainer.getSocket();
         socket.close();
     }
 
@@ -117,7 +118,7 @@ public class WebSocket {
         new Thread("WebSocket Connection Checker"){
             public void run(){
                 try{
-                    Socket socket = ioContainer.getSocket();
+                    UpgradableSocket socket = ioContainer.getSocket();
                     while(!socket.isClosed()){
                         if(pingSent) socket.close();
                         sendPing();

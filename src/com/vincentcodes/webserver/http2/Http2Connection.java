@@ -8,6 +8,7 @@ import java.net.Socket;
 import java.util.List;
 import java.util.Optional;
 
+import com.vincentcodes.net.UpgradableSocket;
 import com.vincentcodes.webserver.WebServer;
 import com.vincentcodes.webserver.component.request.HttpRequest;
 import com.vincentcodes.webserver.component.request.HttpRequestValidator;
@@ -32,7 +33,7 @@ public class Http2Connection {
     public static final int WINDOW_UPDATE_AMOUNT = 32768;
 
     private IOContainer ioContainer;
-    private Socket connection;
+    private UpgradableSocket connection;
     private StreamStore streamStore;
 
     private HttpRequestValidator requestValidator;
@@ -76,16 +77,22 @@ public class Http2Connection {
      * @see Http2Stream#process()
      */
     private void universalInputHandler(Http2Stream stream, Http2Frame frame) throws IOException, InvocationTargetException{
+        // if(!(frame.payload instanceof WindowUpdateFrame))
+        //     WebServer.logger.debug("Recv: " + frame.toString());
+
         Http2RequestConverter converter = stream.getConverter();
+        
         if(converter.isHttpMessageFrame(frame)){
             converter.addFrame(frame);
 
             Optional<HttpRequest> optRequest = converter.toRequest();
             if(optRequest.isPresent()){
                 try(HttpRequest req = optRequest.get(); ResponseBuilder response = handleHttpRequest(req)){
-                    List<Http2Frame> frames = converter.fromResponse(response);
-                    // max frame count is used to prevent safari from requesting a humongous payload
-                    int maxFrameAmount = (int)Math.floor((WebServer.MAX_PARTIAL_DATA_LENGTH+1)/config.getMaxFrameSize()) + Http2RequestConverter.getNonDataFrameCount(frames);
+                    int maxDataFrameAmount = (int)Math.floor((WebServer.MAX_PARTIAL_DATA_LENGTH+1)/config.getMaxFrameSize());
+                    // "+1" to make sure I can poop on safari down below
+                    List<Http2Frame> frames = converter.fromResponse(response, maxDataFrameAmount + 1);
+                    // Max frame count is used to prevent safari from requesting a humongous payload
+                    int maxFrameAmount = maxDataFrameAmount + Http2RequestConverter.getNonDataFrameCount(frames);
                     if(frames.size() <= maxFrameAmount){
                         stream.send(frames);
                     }else{
@@ -95,24 +102,25 @@ public class Http2Connection {
                     }
                 }
             }
-        }else{
-            if(frame.payload instanceof SettingsFrame){
-                if((frame.flags & SettingsFrame.ACK) == 0){
-                    SettingsFrame settings = (SettingsFrame)frame.payload;
-                    config.apply(settings);
-                    stream.send(frameGenerator.settingsFrameAck(-1));
-                }
-            }else if(frame.payload instanceof PriorityFrame){
-                // Not implemented, very complex (involves stream dependency stuff)
-            }else if(frame.payload instanceof PingFrame){
-                if((frame.flags & PingFrame.ACK) == 0){
-                    stream.send(frameGenerator.pingFrame(true));
-                }else{
-                    pingReceived();
-                }
-            }else if(frame.payload instanceof GoAwayFrame){
-                connection.close();
+            return;
+        }
+        
+        if(frame.payload instanceof SettingsFrame){
+            if((frame.flags & SettingsFrame.ACK) == 0){
+                SettingsFrame settings = (SettingsFrame)frame.payload;
+                config.apply(settings);
+                stream.send(frameGenerator.settingsFrameAck(-1));
             }
+        }else if(frame.payload instanceof PriorityFrame){
+            // Not implemented, very complex (involves stream dependency stuff)
+        }else if(frame.payload instanceof PingFrame){
+            if((frame.flags & PingFrame.ACK) == 0){
+                stream.send(frameGenerator.pingFrame(true));
+            }else{
+                pingReceived();
+            }
+        }else if(frame.payload instanceof GoAwayFrame){
+            connection.close();
         }
     }
 
@@ -120,6 +128,9 @@ public class Http2Connection {
      * @see Http2Stream#send()
      */
     private void universalOutputHandler(Http2Stream stream, Http2Frame frame) throws IOException, InvocationTargetException{
+        // if(!(frame.payload instanceof WindowUpdateFrame))
+        //     WebServer.logger.debug("Send: " + frame.toString());
+        
         os.write(frame.toBytes());
     }
 
@@ -136,9 +147,6 @@ public class Http2Connection {
         initConnectionChecker();
         while(isConnected()){
             Http2Frame requestFrame = http2Parser.parse(is);
-            // if(!(response.payload instanceof WindowUpdateFrame))
-            //     WebServer.logger.warn("Recv: " + response.toString());
-            // WebServer.logger.debug(requestFrame.toString());
 
             Optional<Http2Stream> optStream = streamStore.findStream(requestFrame);
             if(optStream.isPresent()){
@@ -163,7 +171,7 @@ public class Http2Connection {
         return HttpResponses.generate400Response();
     }
 
-    public Socket getConnection() {
+    public UpgradableSocket getConnection() {
         return connection;
     }
 
@@ -172,18 +180,19 @@ public class Http2Connection {
     }
 
     public boolean isConnected(){
-        return !(connection.isInputShutdown() || connection.isOutputShutdown());
+        Socket conn = connection.getUnderlyingSocket();
+        return !(conn.isInputShutdown() || conn.isOutputShutdown());
     }
     
     private void initConnectionChecker(){
         new Thread("Http2 Connection Checker"){
             public void run(){
                 try{
-                    Socket socket = ioContainer.getSocket();
+                    UpgradableSocket socket = ioContainer.getSocket();
                     while(!socket.isClosed()){
+                        Thread.sleep(WebServer.WEBSOCKET_PING_INTERVAL_MILSEC);
                         if(pingSent) socket.close();
                         sendPing();
-                        Thread.sleep(WebServer.WEBSOCKET_PING_INTERVAL_MILSEC);
                     }
                 }catch(Exception e){
                     e.printStackTrace();

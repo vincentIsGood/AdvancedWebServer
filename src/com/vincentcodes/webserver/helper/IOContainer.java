@@ -2,7 +2,8 @@ package com.vincentcodes.webserver.helper;
 
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.Socket;
+
+import com.vincentcodes.net.UpgradableSocket;
 
 /**
  * Used to store IO Streams, especially when you have
@@ -11,17 +12,17 @@ import java.net.Socket;
  * the data getting lost
  */
 public class IOContainer {
-    private Socket socket;
+    private UpgradableSocket socket;
     private InputStream is;
     private OutputStream os;
 
-    public IOContainer(Socket socket, InputStream is, OutputStream os){
+    public IOContainer(UpgradableSocket socket, InputStream is, OutputStream os){
         this.socket = socket;
         this.is = is;
         this.os = os;
     }
 
-    public Socket getSocket(){
+    public UpgradableSocket getSocket(){
         return socket;
     }
 

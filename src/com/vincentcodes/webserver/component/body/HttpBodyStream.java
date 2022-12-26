@@ -83,6 +83,11 @@ public class HttpBodyStream implements HttpBody {
         return byteArray.toString();
     }
 
+    @Override
+    public int available(){
+        return byteArray.size() - (nextByteIndex + 1);
+    }
+
     /**
      * Once this method is invoked, {@link DeflaterOutputStream#finish()} is invoked
      * inside the method to indicate end of compression. 

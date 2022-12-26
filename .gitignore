@@ -10,8 +10,9 @@ lib/com
 lib/org
 
 DEV*
-./*.txt
-./*.jar
-./*.jks
-./*.pfx
-./*.cer
+/*.jar
+*.txt
+*.jks
+*.pfx
+*.cer
+*.zip

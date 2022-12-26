@@ -16,7 +16,7 @@ import com.vincentcodes.webserver.component.response.ResponseBuilder;
  */
 public class HttpRedirecter {
     /**
-     * @param request [mutate]
+     * @param request
      * @param response [mutate]
      * @param url the destination of the redirection
      */
@@ -29,7 +29,7 @@ public class HttpRedirecter {
     }
     
     /**
-     * @param request [mutate]
+     * @param request
      * @param response [mutate]
      * @param url the destination of the redirection
      */
@@ -42,7 +42,7 @@ public class HttpRedirecter {
     }
 
     /**
-     * @param request [mutate]
+     * @param request
      * @param response [mutate]
      * @param url the destination of the redirection
      */
