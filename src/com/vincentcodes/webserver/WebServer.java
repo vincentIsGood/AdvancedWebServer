@@ -85,9 +85,9 @@ public class WebServer {
     public static final int MAX_HTTP2_STREAMS_INDEX = 65536-1; // default: 2**31-1
 
     /**
-     * You need at least 1MiB to keep the streaming service running smooth
-     * (esp. for video streaming service)
-     * 
+     * Note. You need at least 1MiB to keep the streaming service 
+     * running smooth (esp. for video streaming services)
+     * <p>
      * 2 MiB (used for streaming files, including the starting byte)
      */
     public static final int MAX_PARTIAL_DATA_LENGTH = 1024 * 1024 * 2 -1;

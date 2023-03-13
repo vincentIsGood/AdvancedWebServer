@@ -5,7 +5,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.net.Socket;
-import java.util.List;
 import java.util.Optional;
 
 import com.vincentcodes.net.UpgradableSocket;
@@ -24,6 +23,7 @@ import com.vincentcodes.webserver.http2.types.GoAwayFrame;
 import com.vincentcodes.webserver.http2.types.PingFrame;
 import com.vincentcodes.webserver.http2.types.PriorityFrame;
 import com.vincentcodes.webserver.http2.types.SettingsFrame;
+import com.vincentcodes.webserver.http2.types.WindowUpdateFrame;
 
 // TODO: stream dependency, errors, are still not implemented yet.
 /**
@@ -87,18 +87,40 @@ public class Http2Connection {
 
             Optional<HttpRequest> optRequest = converter.toRequest();
             if(optRequest.isPresent()){
+                // Old buffering method
+                // try(HttpRequest req = optRequest.get(); ResponseBuilder response = handleHttpRequest(req)){
+                //     boolean ignoreMaxConstraint = !response.getHeaders().hasHeader("content-range");
+
+                //     int maxDataFrameAmount = (int)Math.floor((WebServer.MAX_PARTIAL_DATA_LENGTH+1)/config.getMaxFrameSize());
+                //     if(ignoreMaxConstraint)
+                //         maxDataFrameAmount = -1;
+                //     List<Http2Frame> frames = converter.fromResponse(response, maxDataFrameAmount);
+
+                //     // Max frame count is used to prevent safari from requesting a humongous payload
+                //     int maxFrameAmount = maxDataFrameAmount + Http2RequestConverter.getNonDataFrameCount(frames);
+                //     if(frames.size() <= maxFrameAmount){
+                //         stream.send(frames);
+                //     }else{
+                //         // just end the stream halfway (just like how safari treat me)
+                //         frames.add(maxFrameAmount+1, stream.getFrameGenerator().rstStreamFrame(-1, ErrorCodes.CANCEL));
+                //         stream.send(frames);
+                //     }
+                // }
                 try(HttpRequest req = optRequest.get(); ResponseBuilder response = handleHttpRequest(req)){
+                    boolean ignoreMaxConstraint = !response.getHeaders().hasHeader("content-range") 
+                        && response.getHeaders().getEntityInfo().getLength() < 1024*1024; // 1MB
+                    
                     int maxDataFrameAmount = (int)Math.floor((WebServer.MAX_PARTIAL_DATA_LENGTH+1)/config.getMaxFrameSize());
-                    // "+1" to make sure I can poop on safari down below
-                    List<Http2Frame> frames = converter.fromResponse(response, maxDataFrameAmount + 1);
-                    // Max frame count is used to prevent safari from requesting a humongous payload
-                    int maxFrameAmount = maxDataFrameAmount + Http2RequestConverter.getNonDataFrameCount(frames);
-                    if(frames.size() <= maxFrameAmount){
-                        stream.send(frames);
-                    }else{
-                        // just end the stream halfway (just like how safari treat me)
-                        frames.add(maxFrameAmount+1, stream.getFrameGenerator().rstStreamFrame(-1, ErrorCodes.CANCEL));
-                        stream.send(frames);
+                    if(ignoreMaxConstraint) maxDataFrameAmount = -1;
+                    
+                    // TODO: Huge Problem create another thread to detect other frames (eg. Rst from client) and terminate the following line
+                    converter.streamResponseToStream(response, maxDataFrameAmount, stream);
+
+                    if(!ignoreMaxConstraint){
+                        // Max frame count is used to prevent safari from requesting a humongous payload
+                        // This is also my problem of doing single threading badly (safari sent CANCEL 
+                        // but I am still busy sending in #streamResponseToStream)
+                        stream.send(stream.getFrameGenerator().rstStreamFrame(-1, ErrorCodes.CANCEL));
                     }
                 }
             }
@@ -111,6 +133,9 @@ public class Http2Connection {
                 config.apply(settings);
                 stream.send(frameGenerator.settingsFrameAck(-1));
             }
+        }else if(frame.payload instanceof WindowUpdateFrame){
+            stream.modifyServerWindow((WindowUpdateFrame)frame.payload);
+            stream.sendQueuedUpFrames();
         }else if(frame.payload instanceof PriorityFrame){
             // Not implemented, very complex (involves stream dependency stuff)
         }else if(frame.payload instanceof PingFrame){
@@ -129,7 +154,7 @@ public class Http2Connection {
      */
     private void universalOutputHandler(Http2Stream stream, Http2Frame frame) throws IOException, InvocationTargetException{
         // if(!(frame.payload instanceof WindowUpdateFrame))
-        //     WebServer.logger.debug("Send: " + frame.toString());
+        //     WebServer.logger.warn("Send: " + frame.toString());
         
         os.write(frame.toBytes());
     }

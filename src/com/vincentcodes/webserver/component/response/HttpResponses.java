@@ -88,8 +88,7 @@ public class HttpResponses {
         return useWholeFileAsBody(file, null);
     }
     /**
-     * Text files will often be compressed.
-     * @param acceptEncoding Not guranteed to use that encoding
+     * @param acceptEncoding Text files will often be compressed, if any acceptEncoding is specified
      */
     public static ResponseBuilder useWholeFileAsBody(File file, EntityEncodings acceptEncoding) throws IOException {
         HttpBody requestBody = null;
@@ -108,8 +107,8 @@ public class HttpResponses {
         }
         
         EntityEncodings acceptedEncoding = requestBody.getAcceptedEncoding();
-        if(acceptedEncoding == EntityEncodings.GZIP
-        || acceptedEncoding == EntityEncodings.DEFLATE){
+        if(acceptEncoding != null 
+        && (acceptedEncoding == EntityEncodings.GZIP || acceptedEncoding == EntityEncodings.DEFLATE)){
             headers.add("content-encoding", acceptEncoding.value());
         }
 

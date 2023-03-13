@@ -2,12 +2,15 @@ package com.vincentcodes.webserver.http2;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 
 import com.vincentcodes.webserver.http2.constants.StreamState;
 import com.vincentcodes.webserver.http2.types.DataFrame;
 import com.vincentcodes.webserver.http2.types.HeadersFrame;
 import com.vincentcodes.webserver.http2.types.RstStreamFrame;
+import com.vincentcodes.webserver.http2.types.WindowUpdateFrame;
 
 /**
  * @see https://tools.ietf.org/html/rfc7540#section-8.1
@@ -19,13 +22,24 @@ public class Http2Stream {
     /**
      * Send WindowUpdateFrames to client's according to this value.
      * Allow them to keep sending stuff.
+     * 
+     * This value controls how much CLIENT can send to the server.
+     * eg. control client's uploading speed to server.
      */
     private int maxClientWindow;
     private int currentClientWindow;
 
-    // The client will send us window update later anyways. Besides, safari will
-    // not send window update after we have run out of server window.
-    // private int currentServerWindow;
+    /**
+     * I configured the server to take the same config as client.
+     * 
+     * maxServerWindow is not useful: since 0 is the boundary now.
+     * 
+     * This value controls how much SERVER can send back to client.
+     * eg. control client's downloading speed from server.
+     */
+    // private int maxServerWindow;
+    private int currentServerWindow;
+    private Queue<Http2Frame> framesToBeSent;
 
     private StreamIOHandler inputHandler;
     private StreamIOHandler outputHandler;
@@ -45,11 +59,15 @@ public class Http2Stream {
         this.state = StreamState.IDLE;
         this.streamId = streamId;
         this.maxClientWindow = frameGenerator.getConfig().getInitialWindowSize();
+        // this.maxServerWindow = maxClientWindow;
         this.currentClientWindow = maxClientWindow;
+        this.currentServerWindow = maxClientWindow;
         this.inputHandler = inputHandler;
         this.outputHandler = outputHandler;
         this.frameGenerator = frameGenerator;
         this.converter = new Http2RequestConverter(frameGenerator);
+
+        framesToBeSent = new LinkedList<>();
     }
 
     public StreamState getState() {
@@ -117,7 +135,24 @@ public class Http2Stream {
             send(frame);
         }
     }
+    public void sendQueuedUpFrames() throws InvocationTargetException, IOException{
+        while(framesToBeSent.size() > 0 && currentServerWindow > 0){
+            sendUnsafe(framesToBeSent.poll());
+        }
+    }
+    /**
+     * Will queue up frames if server's window is not enough.
+     * Will resend them AS SOON AS WindowUpdate is received.
+     */
     private void sendUnsafe(Http2Frame frame) throws IOException, InvocationTargetException{
+        // TODO: Still in Test stage: To make server side respect client's window: uncomment the following
+        // if(currentServerWindow < 0){
+        //     framesToBeSent.add(frame);
+        //     return;
+        // }
+        // if(frame.payload instanceof DataFrame){
+        //     currentServerWindow -= frame.payloadLength;
+        // }
         if(state != StreamState.CLOSED){
             // WebServer.logger.debug("Send: " + frame.toString());
             transitionState(frame, true);
@@ -134,6 +169,9 @@ public class Http2Stream {
             sendUnsafe(frameGenerator.windowUpdateFrame(Http2Connection.WINDOW_UPDATE_AMOUNT, 0)); // You need to add window to stream 0 as well
             currentClientWindow += Http2Connection.WINDOW_UPDATE_AMOUNT;
         }
+    }
+    public void modifyServerWindow(WindowUpdateFrame windowUpdateFrame){
+        currentServerWindow += windowUpdateFrame.windowSizeIncrement;
     }
 
     /**

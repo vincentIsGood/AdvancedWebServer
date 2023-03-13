@@ -13,6 +13,8 @@ import com.vincentcodes.webserver.component.request.HttpRequest;
 import com.vincentcodes.webserver.component.response.HttpResponses;
 import com.vincentcodes.webserver.component.response.ResponseBuilder;
 import com.vincentcodes.webserver.component.response.ResponseCodes;
+import com.vincentcodes.webserver.dispatcher.HttpHandlerOptions;
+import com.vincentcodes.webserver.dispatcher.HttpHandlerResult;
 import com.vincentcodes.webserver.dispatcher.operation.MethodInvocationStrategy;
 import com.vincentcodes.webserver.reflect.MethodDecorator;
 import com.vincentcodes.webserver.util.FileExtUtils;
@@ -30,28 +32,28 @@ public class HttpInvocationStrategy implements MethodInvocationStrategy {
                 Object body = method.quickInvoke(request);
                 return handleResponseBody(request, body);
             }
-        }else if (method.parametersInFormOf(HttpRequest.class, ResponseBuilder.class)) {
+        } else if (method.parametersInFormOf(HttpRequest.class, ResponseBuilder.class)) {
             if (method.returnsVoid()) {
                 method.quickInvoke(request, response);
             } else {
                 Object body = method.quickInvoke(request, response);
-                if(method.hasAnnotation(Mutatable.class)){
+                if (method.hasAnnotation(Mutatable.class)) {
                     ResponseBuilder realResponse = handleResponseBody(request, body);
                     // errors cannot be altered.
-                    if(!ResponseCodes.isErrorResponseCode(realResponse.getResponseCode())){
-                        if(response.isResponseCodeModified())
+                    if (!ResponseCodes.isErrorResponseCode(realResponse.getResponseCode())) {
+                        if (response.isResponseCodeModified())
                             realResponse.setResponseCode(response.getResponseCode());
                         realResponse.getHeaders().add(response.getHeaders());
                     }
                     return realResponse;
-                }else{
+                } else {
                     return handleResponseBody(request, body);
                 }
             }
         }
         return response;
     }
-    
+
     /**
      * <p>
      * Default handler for a response. Features include (handling non-existent
@@ -94,42 +96,58 @@ public class HttpInvocationStrategy implements MethodInvocationStrategy {
      */
     private ResponseBuilder handleResponseBody(HttpRequest request, Object body) throws IOException, InvocationTargetException{
         if (body instanceof File) {
-            File file = (File) body;
-            if (!file.exists() || file.isDirectory()) {
-                return HttpResponses.generate404Response();
-            }
-            long totalSize = file.length();
-
-            HttpHeaders headers = request.getHeaders();
-            EntityInfo info = headers.getEntityInfo();
-            RangeHeader range = info.getRange();
-            if (range != null && range.isValid()) {
-                int startLoc = (int)range.getRangeStart();
-                int endLoc = (int)range.getRangeEnd();
-
-                if (range.hasRangeEnd()) {
-                    return HttpResponses.usePartialContent(file, startLoc, endLoc, totalSize);
-                } else {
-                    int defaultLength = startLoc + WebServer.MAX_PARTIAL_DATA_LENGTH;
-                    endLoc = defaultLength >= totalSize ? (int)totalSize-1 : defaultLength;
-                    return HttpResponses.usePartialContent(file, startLoc, endLoc, totalSize);
-                }
-            }else{
-                if(FileExtUtils.fileIsVideo(FileExtUtils.extractFileExtension(file.getName()))){
-                    return HttpResponses.usePartialContent(file, 0, WebServer.MAX_PARTIAL_DATA_LENGTH, totalSize);
-                }
-                // if(headers.getHeader("accept-encoding").contains("gzip")){
-                //     return HttpResponses.useWholeFileAsBody(file, EntityEncodings.GZIP);
-                // }else if(headers.getHeader("accept-encoding").contains("deflate")){
-                //     return HttpResponses.useWholeFileAsBody(file, EntityEncodings.DEFLATE);
-                // }else{
-                //     return HttpResponses.useWholeFileAsBody(file);
-                // }
-                return HttpResponses.useWholeFileAsBody(file);
-            }
+            return handleFile(request, (File)body, HttpHandlerOptions.empty());
+        } else if(body instanceof HttpHandlerResult) {
+            HttpHandlerResult result = (HttpHandlerResult) body;
+            Object returnBody = result.getReturnResult();
+            if(returnBody instanceof File)
+                return handleFile(request, (File)returnBody, result.getOptions());
+            
+            // options won't work in normal non-file objects for now
+            return handleResponseBody(request, returnBody);
         } else if (body != null) {
             return HttpResponses.useObjectAsBody(body);
         }
         return HttpResponses.generate404Response();
+    }
+    private ResponseBuilder handleFile(HttpRequest request, File body, HttpHandlerOptions options) throws IOException{
+        File file = (File) body;
+        if (!file.exists() || file.isDirectory()) {
+            return HttpResponses.generate404Response();
+        }
+        
+        if(options.isWholeFile()){
+            return HttpResponses.useWholeFileAsBody(file);
+        }
+
+        long totalSize = file.length();
+
+        HttpHeaders headers = request.getHeaders();
+        EntityInfo info = headers.getEntityInfo();
+        RangeHeader range = info.getRange();
+        if (range != null && range.isValid()) {
+            int startLoc = (int)range.getRangeStart();
+            int endLoc = (int)range.getRangeEnd();
+
+            if (range.hasRangeEnd()) {
+                return HttpResponses.usePartialContent(file, startLoc, endLoc, totalSize);
+            } else {
+                int defaultLength = startLoc + WebServer.MAX_PARTIAL_DATA_LENGTH;
+                endLoc = defaultLength >= totalSize ? (int)totalSize-1 : defaultLength;
+                return HttpResponses.usePartialContent(file, startLoc, endLoc, totalSize);
+            }
+        }else{
+            if(FileExtUtils.fileIsVideo(FileExtUtils.extractFileExtension(file.getName()))){
+                return HttpResponses.usePartialContent(file, 0, WebServer.MAX_PARTIAL_DATA_LENGTH, totalSize);
+            }
+            // if(headers.getHeader("accept-encoding").contains("gzip")){
+            //     return HttpResponses.useWholeFileAsBody(file, EntityEncodings.GZIP);
+            // }else if(headers.getHeader("accept-encoding").contains("deflate")){
+            //     return HttpResponses.useWholeFileAsBody(file, EntityEncodings.DEFLATE);
+            // }else{
+            //     return HttpResponses.useWholeFileAsBody(file);
+            // }
+            return HttpResponses.useWholeFileAsBody(file);
+        }
     }
 }

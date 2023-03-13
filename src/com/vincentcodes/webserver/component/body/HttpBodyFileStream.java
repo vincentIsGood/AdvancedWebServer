@@ -98,9 +98,7 @@ public class HttpBodyFileStream implements HttpBody {
 
     /**
      * Once this method is invoked, {@link DeflaterOutputStream#finish()} is invoked
-     * inside the method to indicate end of compression. 
-     * 
-     * This method is also used by {@link #length()}.
+     * inside the method to indicate end of compression.
      */
     @Override
     public byte[] getBytes(){
