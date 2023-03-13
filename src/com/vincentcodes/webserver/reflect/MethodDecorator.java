@@ -62,15 +62,15 @@ public class MethodDecorator {
      * @return
      */
     public boolean parametersInFormOf(Class<?>... types){
-        if(types.length == method.getParameterCount()){
-            Class<?>[] clazzes = method.getParameterTypes();
-            for(int i = 0; i < clazzes.length; i++){
-                if(!clazzes[i].equals(types[i]))
-                    return false;
-            }
-            return true;
+        if(types.length != method.getParameterCount())
+            return false;
+        
+        Class<?>[] clazzes = method.getParameterTypes();
+        for(int i = 0; i < clazzes.length; i++){
+            if(!clazzes[i].equals(types[i]))
+                return false;
         }
-        return false;
+        return true;
     }
 
     /**
