@@ -74,7 +74,7 @@ public class WebSocket {
         WebSocketFrame frame = WebSocketFrameParser.parse(ioContainer.getInputStream());
 
         if(WebServer.lowLevelDebugMode)
-            WebServer.logger.debug("Ws Send: " + frame.toString());
+            WebServer.logger.debug("Ws Recv: " + frame.toString());
 
         return frame;
     }
