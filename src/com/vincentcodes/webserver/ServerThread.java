@@ -63,7 +63,12 @@ public class ServerThread extends Thread{
     private boolean configureConnection() throws IOException{
         clientConnection.setClientMode(false);
         clientConnection.setSSLConfiguerer(this::configureSSL);
-        boolean isClientUsingSSL = clientConnection.upgrade();
+
+        boolean isClientUsingSSL = false;
+        try{
+            isClientUsingSSL = clientConnection.upgrade();
+            // sslUpgrader is null => keep false
+        }catch(NullPointerException ignore){}
 
         // client uses http but server uses https scheme
         if(!isClientUsingSSL && serverConfig.useSSL()){
@@ -184,7 +189,6 @@ public class ServerThread extends Thread{
      * Still in experimental phase
      */
     private void http2Initialization() throws IOException, CannotParseRequestException, InvocationTargetException{
-        WebServer.logger.debug("Debug messages for http2 are not available, modify the source code to turn it back on.");
         Http2Connection http2Connection = new Http2Connection(socketIOContainer, requestValidator, requestDispatcher);
         http2Connection.setup();
         http2Connection.takeover();

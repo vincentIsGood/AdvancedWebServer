@@ -97,6 +97,8 @@ public class WebServer {
             enable(LogType.DEBUG);
         }
     };
+    public static boolean lowLevelDebugMode = false;
+
     public static final ObjectPool PUBLIC_POOL = new ObjectPool();
     public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("E, dd MMM yyyy HH:mm:ss z", Locale.US);
     public static final Map<String, Class<? extends Annotation>> SUPPORTED_REQUEST_METHOD = Collections.unmodifiableMap(new HashMap<>(){

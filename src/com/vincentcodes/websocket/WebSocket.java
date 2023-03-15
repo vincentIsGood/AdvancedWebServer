@@ -71,7 +71,12 @@ public class WebSocket {
      * a WebSocketFrame.
      */
     public WebSocketFrame readNextFrame() throws IOException{
-        return WebSocketFrameParser.parse(ioContainer.getInputStream());
+        WebSocketFrame frame = WebSocketFrameParser.parse(ioContainer.getInputStream());
+
+        if(WebServer.lowLevelDebugMode)
+            WebServer.logger.debug("Ws Send: " + frame.toString());
+
+        return frame;
     }
 
     /**
@@ -93,6 +98,9 @@ public class WebSocket {
     }
 
     public void send(WebSocketFrame frame) throws IOException{
+        if(WebServer.lowLevelDebugMode)
+            WebServer.logger.debug("Ws Send: " + frame.toString());
+
         ioContainer.getOutputStream().write(frame.toBytes());
     }
 
