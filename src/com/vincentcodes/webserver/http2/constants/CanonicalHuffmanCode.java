@@ -1,6 +1,7 @@
 package com.vincentcodes.webserver.http2.constants;
 
 import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -60,8 +61,9 @@ public class CanonicalHuffmanCode {
     public static byte[] encode(String str){
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         String combinedBin = "";
-        for(int i = 0; i < str.length(); i++){
-            combinedBin += getCodeFromSym(str.charAt(i));
+        byte[] strBytes = str.getBytes(StandardCharsets.UTF_8);
+        for(int i = 0; i < strBytes.length; i++){
+            combinedBin += getCodeFromSym(strBytes[i] & 0xff);
         }
         if(combinedBin.length() % 8 != 0){
             // pad the end with '1's, because it's very easy to reach '00000' which is '0'
