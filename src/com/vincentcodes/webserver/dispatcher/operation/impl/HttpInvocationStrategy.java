@@ -67,7 +67,7 @@ public class HttpInvocationStrategy implements MethodInvocationStrategy {
      * what you can do is a little trick shown as follows... (return an Object, it's very 
      * ambiguous but it is a catch-all type)
      * </p>
-     * <pre>
+     * <pre>{@code
      * &#64;HttpGet
      * &#64;Mutatable
      * &#64;RequestMapping("/authenticate")
@@ -88,7 +88,7 @@ public class HttpInvocationStrategy implements MethodInvocationStrategy {
      *   }
      *   return "";
      * }
-     * </pre>
+     * }</pre>
      * 
      * @param request 
      * @param body An object for Response Body ({@link File} / {@link Object})
@@ -103,7 +103,7 @@ public class HttpInvocationStrategy implements MethodInvocationStrategy {
             if(returnBody instanceof File)
                 return handleFile(request, (File)returnBody, result.getOptions());
             
-            // options won't work in normal non-file objects for now
+            // TODO: options won't work in normal non-file objects for now
             return handleResponseBody(request, returnBody);
         } else if (body != null) {
             return HttpResponses.useObjectAsBody(body);
@@ -116,11 +116,9 @@ public class HttpInvocationStrategy implements MethodInvocationStrategy {
             return HttpResponses.generate404Response();
         }
         
-        if(options.isWholeFile()){
-            return HttpResponses.useWholeFileAsBody(file);
+        if(options.isAttachment()){
+            return HttpResponses.useWholeFileAsBody(file, true);
         }
-
-        long totalSize = file.length();
 
         HttpHeaders headers = request.getHeaders();
         EntityInfo info = headers.getEntityInfo();
@@ -130,15 +128,18 @@ public class HttpInvocationStrategy implements MethodInvocationStrategy {
             int endLoc = (int)range.getRangeEnd();
 
             if (range.hasRangeEnd()) {
-                return HttpResponses.usePartialContent(file, startLoc, endLoc, totalSize);
+                return HttpResponses.usePartialContent(file, startLoc, endLoc);
             } else {
+                long totalSize = file.length();
                 int defaultLength = startLoc + WebServer.MAX_PARTIAL_DATA_LENGTH;
-                endLoc = defaultLength >= totalSize ? (int)totalSize-1 : defaultLength;
-                return HttpResponses.usePartialContent(file, startLoc, endLoc, totalSize);
+                endLoc = defaultLength >= totalSize? (int)totalSize-1 : defaultLength;
+                return HttpResponses.usePartialContent(file, startLoc, endLoc);
             }
         }else{
             if(FileExtUtils.fileIsVideo(FileExtUtils.extractFileExtension(file.getName()))){
-                return HttpResponses.usePartialContent(file, 0, WebServer.MAX_PARTIAL_DATA_LENGTH, totalSize);
+                long totalSize = file.length();
+                int defaultLength = WebServer.MAX_PARTIAL_DATA_LENGTH;
+                return HttpResponses.usePartialContent(file, 0, defaultLength >= totalSize? (int)totalSize-1 : defaultLength);
             }
             // if(headers.getHeader("accept-encoding").contains("gzip")){
             //     return HttpResponses.useWholeFileAsBody(file, EntityEncodings.GZIP);

@@ -71,15 +71,6 @@ public class DefaultHandler {
     //     res.getHeaders().add("content-length", "0");
     //     FileControl.save(req, server.getConfiguration());
     // }
-
-    // ------- TODO: I still cannot download a large file ------- //
-    // @Mutatable
-    // @RequestMapping("/**")
-    // public Object catchAllHandler(HttpRequest req, ResponseBuilder res){
-    //     WebServer.Configuration config = server.getConfiguration();
-    //     // only works for 2MiB
-    //     return new HttpHandlerResult(FileControl.get(req, config), new HttpHandlerOptions.Builder().wholeFile().build());
-    // }
     
     // ------- Default ------- //
     @Mutatable

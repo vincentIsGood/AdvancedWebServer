@@ -6,6 +6,8 @@ import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.net.Socket;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import com.vincentcodes.net.UpgradableSocket;
 import com.vincentcodes.webserver.WebServer;
@@ -16,7 +18,6 @@ import com.vincentcodes.webserver.component.response.ResponseBuilder;
 import com.vincentcodes.webserver.dispatcher.HttpRequestDispatcher;
 import com.vincentcodes.webserver.exception.CannotParseRequestException;
 import com.vincentcodes.webserver.helper.IOContainer;
-import com.vincentcodes.webserver.http2.constants.ErrorCodes;
 import com.vincentcodes.webserver.http2.hpack.HpackDecoder;
 import com.vincentcodes.webserver.http2.hpack.HpackEncoder;
 import com.vincentcodes.webserver.http2.types.GoAwayFrame;
@@ -107,21 +108,20 @@ public class Http2Connection {
                 //     }
                 // }
                 try(HttpRequest req = optRequest.get(); ResponseBuilder response = handleHttpRequest(req)){
-                    boolean ignoreMaxConstraint = !response.getHeaders().hasHeader("content-range") 
-                        && response.getHeaders().getEntityInfo().getLength() < 1024*1024; // 1MB
+                    // boolean ignoreMaxConstraint = !response.getHeaders().hasHeader("content-range") 
+                    //     && response.getHeaders().getEntityInfo().getLength() < 1024*1024; // 1MB
                     
-                    int maxDataFrameAmount = (int)Math.floor((WebServer.MAX_PARTIAL_DATA_LENGTH+1)/config.getMaxFrameSize());
-                    if(ignoreMaxConstraint) maxDataFrameAmount = -1;
+                    // int maxDataFrameAmount = (int)Math.floor((WebServer.MAX_PARTIAL_DATA_LENGTH+1)/config.getMaxFrameSize());
+                    // if(ignoreMaxConstraint) maxDataFrameAmount = -1;
                     
-                    // TODO: Huge Problem create another thread to detect other frames (eg. Rst from client) and terminate the following line
-                    converter.streamResponseToStream(response, maxDataFrameAmount, stream);
+                    converter.streamResponseToStream(response, -1, stream);
 
-                    if(!ignoreMaxConstraint){
-                        // Max frame count is used to prevent safari from requesting a humongous payload
-                        // This is also my problem of doing single threading badly (safari sent CANCEL 
-                        // but I am still busy sending in #streamResponseToStream)
-                        stream.send(stream.getFrameGenerator().rstStreamFrame(-1, ErrorCodes.CANCEL));
-                    }
+                    // if(!ignoreMaxConstraint){
+                    //     // Max frame count is used to prevent safari from requesting a humongous payload
+                    //     // This is also my problem of doing single threading badly (safari sent CANCEL 
+                    //     // but I am still busy sending in #streamResponseToStream)
+                    //     stream.send(stream.getFrameGenerator().rstStreamFrame(-1, ErrorCodes.CANCEL));
+                    // }
                 }
             }
             return;
@@ -170,18 +170,32 @@ public class Http2Connection {
         streamStore.addStream(new Http2Stream(0, this::universalInputHandler, this::universalOutputHandler, frameGenerator));
         streamStore.get(0).send(frameGenerator.settingsFrame(0));
         initConnectionChecker();
+
+        ExecutorService executorService = Executors.newFixedThreadPool(2);
         while(isConnected()){
             Http2Frame requestFrame = http2Parser.parse(is);
+            executorService.submit(() -> {
+                try {
+                    // WebServer.logger.warn(Thread.currentThread().getName());
+                    handleNewFrame(requestFrame);
+                } catch (InvocationTargetException | IOException e) {
+                    if(WebServer.lowLevelDebugMode)
+                        e.printStackTrace();
+                }
+            });
+            // handleNewFrame(requestFrame);
+        }
+    }
 
-            Optional<Http2Stream> optStream = streamStore.findStream(requestFrame);
-            if(optStream.isPresent()){
-                Http2Stream stream = optStream.get();
-                stream.process(requestFrame);
-            }else{
-                Http2Stream newStream = new Http2Stream(requestFrame.streamIdentifier, this::universalInputHandler, this::universalOutputHandler, frameGenerator);
-                streamStore.addStream(newStream);
-                newStream.process(requestFrame);
-            }
+    private void handleNewFrame(Http2Frame requestFrame) throws InvocationTargetException, IOException{
+        Optional<Http2Stream> optStream = streamStore.findStream(requestFrame);
+        if(optStream.isPresent()){
+            Http2Stream stream = optStream.get();
+            stream.process(requestFrame);
+        }else{
+            Http2Stream newStream = new Http2Stream(requestFrame.streamIdentifier, this::universalInputHandler, this::universalOutputHandler, frameGenerator);
+            streamStore.addStream(newStream);
+            newStream.process(requestFrame);
         }
     }
 

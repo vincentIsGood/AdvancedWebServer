@@ -6,6 +6,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 
+import com.vincentcodes.webserver.WebServer;
 import com.vincentcodes.webserver.http2.constants.StreamState;
 import com.vincentcodes.webserver.http2.types.DataFrame;
 import com.vincentcodes.webserver.http2.types.HeadersFrame;
@@ -125,6 +126,9 @@ public class Http2Stream {
      * outputHandler must be set before calling this method.
      * @param frame [mutate] streamId will be set to the current 
      * object's streamId
+     * @throws IOException when errors occur while sending the bytes 
+     * under the low level layers OR when the stream is in 
+     * {@link StreamState#CLOSED} state.
      */
     public void send(Http2Frame frame) throws IOException, InvocationTargetException{
         frame.streamIdentifier = streamId;
@@ -145,7 +149,7 @@ public class Http2Stream {
      * Will resend them AS SOON AS WindowUpdate is received.
      */
     private void sendUnsafe(Http2Frame frame) throws IOException, InvocationTargetException{
-        // TODO: Still in Test stage: To make server side respect client's window: uncomment the following
+        // Still in Test stage: To make server side respect client's window: uncomment the following
         // if(currentServerWindow < 0){
         //     framesToBeSent.add(frame);
         //     return;
@@ -154,9 +158,10 @@ public class Http2Stream {
         //     currentServerWindow -= frame.payloadLength;
         // }
         if(state != StreamState.CLOSED){
-            // WebServer.logger.debug("Send: " + frame.toString());
             transitionState(frame, true);
             outputHandler.accept(this, frame);
+        }else if(WebServer.THROW_ERROR_WHEN_SEND_ON_CLOSED){
+            throw new IOException("Http2Stream is closed: " + toString());
         }
     }
 

@@ -1,10 +1,10 @@
 package com.vincentcodes.webserver.dispatcher;
 
 public class HttpHandlerOptions {
-    private boolean wholeFile;
+    private boolean isAttachment;
 
-    public boolean isWholeFile() {
-        return wholeFile;
+    public boolean isAttachment() {
+        return isAttachment;
     }
     
     public static HttpHandlerOptions empty(){
@@ -18,8 +18,8 @@ public class HttpHandlerOptions {
             result = new HttpHandlerOptions();
         }
 
-        public Builder wholeFile(){
-            result.wholeFile = true;
+        public Builder asAttachment(){
+            result.isAttachment = true;
             return this;
         }
 
