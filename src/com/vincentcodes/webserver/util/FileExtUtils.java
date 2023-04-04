@@ -7,16 +7,25 @@ import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 
 public class FileExtUtils {
-    public static String determineMimeType(File file){
-        String fileExt = FileExtUtils.extractFileExtension(file.getName());
+    public static String determineMimeType(String filename){
+        String fileExt = FileExtUtils.extractFileExtension(filename);
         return FileExtUtils.getMimeTypeOfCommonTextExt(fileExt);
     }
+    public static String determineMimeType(File file){
+        return determineMimeType(file.getName());
+    }
 
+    /**
+     * @return null if none found
+     */
     public static String extractFileExtension(String filename){
         int index = filename.lastIndexOf('.')+1;
         if(index == -1)
             return null;
         return filename.substring(index);
+    }
+    public static String extractFileExtension(File file){
+        return extractFileExtension(file.getName());
     }
 
     public static boolean isCommonTextFile(String extension){

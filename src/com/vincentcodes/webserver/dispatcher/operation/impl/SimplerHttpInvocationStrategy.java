@@ -18,6 +18,9 @@ import com.vincentcodes.webserver.dispatcher.operation.MethodInvocationStrategy;
 import com.vincentcodes.webserver.reflect.MethodDecorator;
 import com.vincentcodes.webserver.util.ObjectMappingUtil;
 
+/**
+ * TODO: Warning: This class receives little attention (may contain bugs)
+ */
 public class SimplerHttpInvocationStrategy implements MethodInvocationStrategy {
     private ObjectMapper objectMapper;
 

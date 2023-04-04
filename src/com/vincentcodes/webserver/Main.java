@@ -29,7 +29,7 @@ public class Main{
 
         config.addOption("--http2", true, "Beta. Force the use of protocol http2. Must be used with TLS.");
         config.addOption("--multi", true, "Enable multi-threading");
-        config.addOption("--debug", false, "Enable debugging (Verbosity value: 1, 2, 3)");
+        config.addOption("--debug", true, "Enable debugging");
     }
 
     public static void main(String[] args) throws IOException{
@@ -117,7 +117,8 @@ public class Main{
 
         if(cmd.hasOption("--debug")){
             // int verbosity = Integer.parseInt(cmd.getOptionValue("--debug"));
-            throw new UnsupportedOperationException("'--debug' not implemented");
+            WebServer.logger.warn("Debugging verbosity has not been implemented yet. Continue with 'all' debug messages");
+            WebServer.lowLevelDebugMode = true;
         }
 
         if(serverBuilder != null){

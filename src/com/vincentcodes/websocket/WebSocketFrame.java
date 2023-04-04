@@ -79,4 +79,8 @@ public class WebSocketFrame {
         }catch(IOException e){}
         return os.toByteArray();
     }
+    
+    public String toString(){
+        return String.format("{WsFrame fin: %d, opcode: %d, statusCode: %d, payload: %s}", fin, opcode, statusCode, payload);
+    }
 }

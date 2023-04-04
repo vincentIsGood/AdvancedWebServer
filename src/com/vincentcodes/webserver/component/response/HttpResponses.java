@@ -47,7 +47,8 @@ public class HttpResponses {
      * long is currently not supported.
      * @param startingByte 0 is fine
      */
-    public static ResponseBuilder usePartialContent(File file, int startingByte, int endingByte, long fileTotalSize) throws IOException{
+    public static ResponseBuilder usePartialContent(File file, int startingByte, int endingByte) throws IOException{
+        long fileTotalSize = file.length();
         if (startingByte < 0 || endingByte >= fileTotalSize || endingByte < startingByte) {
             return HttpResponses.generate416Response(fileTotalSize);
         }
@@ -85,13 +86,15 @@ public class HttpResponses {
     }
 
     public static ResponseBuilder useWholeFileAsBody(File file) throws IOException {
-        return useWholeFileAsBody(file, null);
+        return useWholeFileAsBody(file, null, false);
+    }
+    public static ResponseBuilder useWholeFileAsBody(File file, boolean isAttachment) throws IOException {
+        return useWholeFileAsBody(file, null, isAttachment);
     }
     /**
-     * Text files will often be compressed.
-     * @param acceptEncoding Not guranteed to use that encoding
+     * @param acceptEncoding Text files will often be compressed, if any acceptEncoding is specified
      */
-    public static ResponseBuilder useWholeFileAsBody(File file, EntityEncodings acceptEncoding) throws IOException {
+    public static ResponseBuilder useWholeFileAsBody(File file, EntityEncodings acceptEncoding, boolean isAttachment) throws IOException {
         HttpBody requestBody = null;
         boolean isCommonTextFile = FileExtUtils.isCommonTextFile(FileExtUtils.extractFileExtension(file.getName()));
         if(isCommonTextFile){
@@ -108,8 +111,8 @@ public class HttpResponses {
         }
         
         EntityEncodings acceptedEncoding = requestBody.getAcceptedEncoding();
-        if(acceptedEncoding == EntityEncodings.GZIP
-        || acceptedEncoding == EntityEncodings.DEFLATE){
+        if(acceptEncoding != null 
+        && (acceptedEncoding == EntityEncodings.GZIP || acceptedEncoding == EntityEncodings.DEFLATE)){
             headers.add("content-encoding", acceptEncoding.value());
         }
 
@@ -121,6 +124,12 @@ public class HttpResponses {
             headers.add("content-type", contentType);
         }
         headers.add("content-length", Long.toString(requestBody.length()));
+
+        if(isAttachment){
+            headers.add("cache-control", "no-store");
+            headers.add("content-disposition", "attachment; filename=" + file.getName());
+        }
+
         return response;
     }
 

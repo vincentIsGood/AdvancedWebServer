@@ -72,7 +72,6 @@ import com.vincentcodes.webserver.reflect.MethodDecorator;
  * 
  * @author Vincent Ko
  */
-// TODO: use event loop for webserver.
 @Unreferenced(ClassReferences.class)
 public class WebServer {
     public static final int MAX_THREAD_POOL_SIZE = 10;
@@ -80,23 +79,28 @@ public class WebServer {
     public static final int CONNECTION_READ_TIMEOUT_MILSEC = 6000; // 6s
     public static final int CONNECTION_WRITE_TIMEOUT_MILSEC = 120*(60*1000); // 120mins
 
-    public static final int WEBSOCKET_PING_INTERVAL_MILSEC = 2*(60*1000); // 2mins
+    public static final int WEBSOCKET_PING_INTERVAL_MILSEC = 30*(60*1000); // 30mins
 
     public static final int MAX_HTTP2_STREAMS_INDEX = 65536-1; // default: 2**31-1
 
+    public static final boolean THROW_ERROR_WHEN_SEND_ON_CLOSED = true;
+
     /**
-     * You need at least 1MiB to keep the streaming service running smooth
-     * (esp. for video streaming service)
-     * 
+     * Note. You need at least 1MiB to keep the streaming service 
+     * running smooth (esp. for video streaming services)
+     * <p>
      * 2 MiB (used for streaming files, including the starting byte)
      */
     public static final int MAX_PARTIAL_DATA_LENGTH = 1024 * 1024 * 2 -1;
+    // public static final int MAX_PARTIAL_DATA_LENGTH = 1024 * 1024 * 512 -1;
 
     public static final Logger logger = new Logger("logs/output", false, true){
         {
             enable(LogType.DEBUG);
         }
     };
+    public static boolean lowLevelDebugMode = false;
+
     public static final ObjectPool PUBLIC_POOL = new ObjectPool();
     public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("E, dd MMM yyyy HH:mm:ss z", Locale.US);
     public static final Map<String, Class<? extends Annotation>> SUPPORTED_REQUEST_METHOD = Collections.unmodifiableMap(new HashMap<>(){

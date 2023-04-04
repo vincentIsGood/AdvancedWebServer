@@ -7,6 +7,7 @@ import com.vincentcodes.webserver.dispatcher.reflect.NoDirectory;
 import com.vincentcodes.webserver.helper.HttpTunnel;
 import com.vincentcodes.webserver.util.DirectoryListing;
 import com.vincentcodes.webserver.util.HttpRedirecter;
+import com.vincentcodes.webserver.util.RedirectUrlsListing;
 import com.vincentcodes.webserver.util.WebSocketUpgrader;
 
 /**
@@ -34,8 +35,8 @@ public class ClassReferences {
     @Unreferenced(HttpRedirecter.class)
     @Unreferenced(WebSocketUpgrader.class)
     @Unreferenced(DirectoryListing.class)
+    @Unreferenced(RedirectUrlsListing.class)
     public static class UtilClasses{
-
     }
 
     // @Unreferenced(BeforeInvocation.class)

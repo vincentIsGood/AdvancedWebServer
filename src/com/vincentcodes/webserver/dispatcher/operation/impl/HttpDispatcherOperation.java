@@ -45,11 +45,6 @@ public class HttpDispatcherOperation extends DispatcherOperation<HttpRequest, Re
         return filteredRegister.findAllMethodsWithAnyOneOfAnno(supportedHandlerAnno);
     }
     
-    /**
-     * Finds classes that has &#64;HttpHandler. This 
-     * method is used in {@link DispatcherOperation#
-     * getHandlers(WebServer)}
-     */
     @Override
     protected HandlerRegistry findHandlerClasses() {
         HandlerRegistry registeredHandlers = HttpHandlerRegister.getRegistry();

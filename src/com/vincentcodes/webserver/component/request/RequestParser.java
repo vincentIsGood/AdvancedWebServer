@@ -120,7 +120,8 @@ public class RequestParser {
         }
         request.setWholeRequest(wholeRequest.toString());
         if(request.getWholeRequest().startsWith("PRI")){
-            WebServer.logger.debug("HTTP2 upgrade sequence received");
+            if(WebServer.lowLevelDebugMode)
+                WebServer.logger.debug("HTTP2 upgrade sequence received");
             return request;
         }
         WebServer.logger.debug("\n" + request.getWholeRequest());

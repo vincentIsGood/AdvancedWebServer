@@ -2,6 +2,7 @@ package com.vincentcodes.webserver.http2;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -25,6 +26,8 @@ import com.vincentcodes.webserver.http2.types.HeadersFrame;
 /**
  * Used to convert a combination of specific {@link Http2Frame} 
  * of the same stream into an {@link HttpRequest} object.
+ * 
+ * ResponseBuilder is also involved here. {@link #fromResponse(ResponseBuilder, int)}
  */
 public class Http2RequestConverter {
     private LinkedList<Http2Frame> buffer;
@@ -138,8 +141,10 @@ public class Http2RequestConverter {
         return Optional.empty();
     }
 
-    // TODO: low performance issue here...
-    // TODO: do not buffer the frames to a List. Instead, send them all out when ready
+    // TODO: low performance issue here?
+    /**
+     * @param maxDataFrameAmount -1 to make it infinite
+     */
     public List<Http2Frame> fromResponse(ResponseBuilder response, int maxDataFrameAmount){
         List<Http2Frame> frames = new ArrayList<>();
         if(response.getHeaders().getEntityInfo().getLength() > 0){
@@ -148,7 +153,7 @@ public class Http2RequestConverter {
             int dataSize = config.getMaxFrameSize()/2 < 10000? config.getMaxFrameSize() : config.getMaxFrameSize()/2;
             boolean endOfStream = false;
             int dataFrameCount = 0;
-            while(!endOfStream && dataFrameCount < maxDataFrameAmount){
+            while(!endOfStream && (dataFrameCount < maxDataFrameAmount || maxDataFrameAmount == -1)){
                 // use getBytes(buf) to not load the whole file into memory
                 byte[] data = response.getBody().getBytes(dataSize);
                 frames.add(frameGenerator.dataFrame(data, -1, endOfStream = data.length != dataSize));
@@ -169,6 +174,28 @@ public class Http2RequestConverter {
             // frames.add(frameGenerator.rstStreamFrame(-1));
         }
         return frames;
+    }
+    /**
+     * Similar to {@link #fromResponse(ResponseBuilder, int)}, instead of buffering all frames, we send it out immediately
+     */
+    public void streamResponseToStream(ResponseBuilder response, int maxDataFrameAmount, Http2Stream stream) throws InvocationTargetException, IOException{
+        if(response.getHeaders().getEntityInfo().getLength() > 0){
+            stream.send(frameGenerator.responseHeadersFrame(response.getResponseCode(), response.getHeaders(), -1, true, false));
+            // Make sure we send at least 10000 bytes to keep up with the streaming service.
+            int dataSize = config.getMaxFrameSize()/2 < 10000? config.getMaxFrameSize() : config.getMaxFrameSize()/2;
+            boolean endOfStream = false;
+            int dataFrameCount = 0;
+            while(!endOfStream && (dataFrameCount < maxDataFrameAmount || maxDataFrameAmount == -1)){
+                byte[] data = response.getBody().getBytes(dataSize);
+                stream.send(frameGenerator.dataFrame(data, -1, endOfStream = data.length != dataSize));
+                dataFrameCount++;
+            }
+        }else if(response.getHeaders().size() > 0){
+            stream.send(frameGenerator.responseHeadersFrame(response.getResponseCode(), response.getHeaders(), -1, true, true));
+        }else{
+            stream.send(frameGenerator.responseHeadersFrame(response.getResponseCode(), -1, true, true));
+            // stream.send(frameGenerator.rstStreamFrame(-1));
+        }
     }
 
     /**

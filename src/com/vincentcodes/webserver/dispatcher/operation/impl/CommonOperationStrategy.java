@@ -53,10 +53,10 @@ public class CommonOperationStrategy implements OperationStrategy<HttpRequest, R
             throw new IllegalStateException("'handlers' cannot be null in OperationStrategy. Did you use OperationStrategy.setHandlers(List<MethodDecorator>)?");
         }
         try{
-            Set<Class<?>> failedFilterCache = new HashSet<>();
+            Set<Class<?>> failedFiltersForClasses = new HashSet<>();
             for(MethodDecorator method : handlers){
-                if(willFilterOutRequest(request, method, failedFilterCache)){
-                    failedFilterCache.add(method.getParent().get());
+                if(willFilterOutRequest(request, method, failedFiltersForClasses)){
+                    failedFiltersForClasses.add(method.getParent().get());
                     continue;
                 }
                 if(!doesRequestMethodMatchesMethodAnno(request, method))
