@@ -32,6 +32,8 @@ public enum FrameTypes {
     WINDOW_UPDATE ((byte) 0x8, WindowUpdateFrame::parse), // used to implement flow control
     CONTINUATION  ((byte) 0x9, ContinuationFrame::parse); // continue a sequence of header block fragments
 
+    private static final FrameTypes[] VALUES = values();
+
     public final byte value;
     public final TriFunction<Http2Frame, InputStream, HpackDecoder, Http2FrameType> parseFunc; // may throw UncheckedIOException 
 
@@ -45,7 +47,7 @@ public enum FrameTypes {
      * @return null if not found
      */
     public static FrameTypes fromByte(byte b){
-        for(FrameTypes ele : values()) if(ele.value == b) return ele;
+        for(FrameTypes ele : VALUES) if(ele.value == b) return ele;
         return null;
     }
 }

@@ -16,6 +16,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import javax.net.ssl.SSLContext;
+
+import com.vincentcodes.files.FileWatcher;
 import com.vincentcodes.logger.Logger;
 import com.vincentcodes.net.SSLUpgrader;
 import com.vincentcodes.net.UpgradableSocket;
@@ -119,6 +122,7 @@ public class WebServer {
     });
 
     private final WebServer.Configuration configuration;
+    private FileWatcher keystoreWatcher;
 
     private ServerSocket serverSocket;
     private ExecutorService executorService;
@@ -148,9 +152,14 @@ public class WebServer {
             if(configuration.forceHttp2()){
                 logger.warn("Force http2 on all connections");
             }
-            SSLUpgrader upgrader = new SSLUpgrader(configuration.keyStoreFile, configuration.keyStorePassword);
+            SSLUpgrader upgrader = new SSLUpgrader(configuration.getKeyStoreFile(), configuration.getKeyStorePassword());
+            SSLContext sslContext = upgrader.createSSLContext();
+            if(sslContext == null)
+                throw new IllegalStateException("Unable to create SSLContext from the provided keystore");
             UpgradableSocket.setSSLUpgrader(upgrader);
-            upgrader.createSSLContext();
+            
+            keystoreWatcher = new FileWatcher(configuration.keyStoreFile.getCanonicalFile().getParent());
+            keystoreWatcher.registerListener(new KeystoreFileWatcher(configuration));
         }else{
             logger.warn("Creating a non-ssl webserver");
         }
@@ -166,6 +175,8 @@ public class WebServer {
      * Remember to {@link WebServer#close() close} it
      */
     public void start() {
+        keystoreWatcher.start();
+
         // TODO: maybe add some kind of ways to make it more customizable?
         RequestValidatorConfig validatorConfig = new RequestValidatorConfig();
         validatorConfig.addMandatoryHeader("host");

@@ -3,6 +3,7 @@
 .testcerts
 0_*
 
+out/
 classes/com
 logs/
 lib/*sources.jar
@@ -16,3 +17,4 @@ DEV*
 *.pfx
 *.cer
 *.zip
+*.iml

@@ -22,7 +22,7 @@ java -jar webserver.jar [<download / ssl>] [options]
     --extension               <path/to/1.jar>[,<path/to/2.jar>,...]
     --http2                   Beta. Force the use of protocol http2. Must be used with TLS.
     --multi                   Enable multi-threading
-    --debug                   Enable debugging (Verbosity value: 1, 2, 3)
+    --debug                   Enable debugging (Verbosity value: Not supported yet)
 # [] = optional arguments 
 ```
 
