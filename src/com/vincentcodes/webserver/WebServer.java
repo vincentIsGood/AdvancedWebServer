@@ -175,7 +175,8 @@ public class WebServer {
      * Remember to {@link WebServer#close() close} it
      */
     public void start() {
-        keystoreWatcher.start();
+        if(keystoreWatcher != null)
+            keystoreWatcher.start();
 
         // TODO: maybe add some kind of ways to make it more customizable?
         RequestValidatorConfig validatorConfig = new RequestValidatorConfig();

@@ -4,6 +4,7 @@ import java.io.File;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
@@ -71,6 +72,7 @@ public class DirectoryListing {
 
     private static List<File> sortByTypeThenName(File[] files){
         List<File> fileList = new ArrayList<>();
+        Arrays.sort(files);
         for(File file : files){
             if(file.isDirectory())
                 fileList.add(file);
