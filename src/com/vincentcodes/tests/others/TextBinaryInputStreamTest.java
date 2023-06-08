@@ -68,7 +68,7 @@ public class TextBinaryInputStreamTest {
                 finalResult.add(line);
             }
             assertLinesMatch(List.of(
-                "GET /post/index.html HTTP/1.1",
+                "GET /post/index2.html HTTP/1.1",
                 "Host: 127.0.0.1:5050",
                 "Connection: keep-alive",
                 "Upgrade-Insecure-Requests: 1",
@@ -90,7 +90,7 @@ public class TextBinaryInputStreamTest {
     public void read_until_character_eol() throws Exception{
         InputStream is = new ByteArrayInputStream(RequestGenerator.GET.standardGet().getBytes());
         String expectedResult = 
-            "GET /post/index.html HTTP/1.1\r\n"
+            "GET /post/index2.html HTTP/1.1\r\n"
             + "Host: 127.0.0.1:5050\r\n"
             + "Connection: keep-alive\r\n"
             + "Upgrade-Insecure-Requests: 1\r\n"
@@ -106,7 +106,7 @@ public class TextBinaryInputStreamTest {
     public void read_until_string_user_agent() throws Exception{
         InputStream is = new ByteArrayInputStream(RequestGenerator.GET.standardGet().getBytes());
         String expectedResult = 
-            "GET /post/index.html HTTP/1.1\r\n"
+            "GET /post/index2.html HTTP/1.1\r\n"
             + "Host: 127.0.0.1:5050\r\n"
             + "Connection: keep-alive\r\n"
             + "Upgrade-Insecure-Requests: 1\r\n";
