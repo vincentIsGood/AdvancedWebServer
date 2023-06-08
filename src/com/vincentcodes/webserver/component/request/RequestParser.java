@@ -6,7 +6,6 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.StringTokenizer;
 
@@ -165,7 +164,7 @@ public class RequestParser {
                 wholeRequest.append("\n");
                 startBody = true;
             }else if(!startBody){
-                wholeRequest.append(line).append("\r\n");
+                wholeRequest.append(line).append("\n");
                 
                 String key = line.substring(0, line.indexOf(':')).trim();
                 String val = line.substring(line.indexOf(':')+1).trim();

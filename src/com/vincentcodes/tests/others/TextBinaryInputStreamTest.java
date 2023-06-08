@@ -6,9 +6,15 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -150,6 +156,18 @@ public class TextBinaryInputStreamTest {
             assertEquals("nce", new String(result.data()));
             result = tbis.readBytesUntil("asd", 15);
             assertNull(result.data());
+        }
+    }
+
+    @Test
+    public void read_with_repeating_characters() throws Exception{
+        String sentence = "dsadsa\r\n\r\n----asddsa";
+        InputStream is = new ByteArrayInputStream(sentence.getBytes());
+        try(TextBinaryInputStream tbis = new TextBinaryInputStream(is)){
+            ReadUntilResult result;
+            result = tbis.readBytesUntil("\r\n----asddsa", 999);
+            assertEquals("dsadsa\r\n", new String(result.data()));
+            assertTrue(result.isMatchingStrFound());
         }
     }
 }

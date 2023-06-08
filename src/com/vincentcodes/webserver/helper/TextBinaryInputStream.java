@@ -1,6 +1,7 @@
 package com.vincentcodes.webserver.helper;
 
 import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -34,6 +35,9 @@ public class TextBinaryInputStream extends InputStream{
     }
     public TextBinaryInputStream(BufferedInputStream bis){
         is = bis;
+    }
+    public TextBinaryInputStream(ByteArrayInputStream bais){
+        is = bais;
     }
 
     /**
@@ -103,6 +107,8 @@ public class TextBinaryInputStream extends InputStream{
         byte[] bytes = readBytesUntil(matchingStr);
         return bytes == null? null : new String(bytes);
     }
+    
+    private ByteArrayOutputStream prevBuf;
     /**
      * @param readSize read number of bytes out of the stream. readSize
      * must be at least the length of matchingStr
@@ -111,7 +117,6 @@ public class TextBinaryInputStream extends InputStream{
      * If EOF is encountered during the search, the bytes read in the 
      * process will be returned.
      */
-    private ByteArrayOutputStream prevBuf;
     public ReadUntilResult readBytesUntil(String matchingStr, int readSize) throws IOException {
         byte[] matchingStrBytes = matchingStr.getBytes();
         if(readSize <= 0)
@@ -140,6 +145,13 @@ public class TextBinaryInputStream extends InputStream{
                     found = true;
             }else{
                 matchingCharAt = 0;
+
+                // we may miss the current byte, if we skip check the current byte with matchingCharAt = 0
+                if(byteRead == matchingStrBytes[matchingCharAt]){
+                    matchingCharAt++;
+                    if(matchingCharAt == matchingStrBytes.length)
+                        found = true;
+                }
             }
             // if we reach the readSize and last char does not match our match char. Leave.
             // eg. ("long sent_nce").readBytesUntil("sente", 6). Dangling "s" (index 5) matches, 
@@ -184,6 +196,13 @@ public class TextBinaryInputStream extends InputStream{
                     found = true;
             }else{
                 matchingCharAt = 0;
+                
+                // we may miss the current byte, if we skip check the current byte with matchingCharAt = 0
+                if(byteRead == matchingStrBytes[matchingCharAt]){
+                    matchingCharAt++;
+                    if(matchingCharAt == matchingStrBytes.length)
+                        found = true;
+                }
             }
             if(found){
                 // Exclude the matchingStr
