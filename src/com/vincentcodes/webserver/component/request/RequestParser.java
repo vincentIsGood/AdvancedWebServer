@@ -7,6 +7,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.StringTokenizer;
 
 import com.vincentcodes.webserver.WebServer;
 import com.vincentcodes.webserver.component.body.HttpBody;
@@ -163,7 +164,7 @@ public class RequestParser {
                 wholeRequest.append("\n");
                 startBody = true;
             }else if(!startBody){
-                wholeRequest.append(line).append("\r\n");
+                wholeRequest.append(line).append("\n");
                 
                 String key = line.substring(0, line.indexOf(':')).trim();
                 String val = line.substring(line.indexOf(':')+1).trim();
@@ -194,25 +195,22 @@ public class RequestParser {
     }
 
     /**
-     * Parse the first line of an http request
-     * @param line
+     * @param line first line of an http request (eg. "GET /file HTTP/1.1")
      * @return StartLine if nothing went wrong. null if the request method is not supported or in an invalid format
      */
     public static HttpRequestBasicInfo parseFirstLine(String line) throws CannotParseRequestException{
         String method = line.substring(0, line.indexOf(' ')); // till the 1st space
-        String path = line.substring(line.indexOf(' ')+1, line.lastIndexOf(' ')); // the middle bit
-        String version = line.substring(line.lastIndexOf(' ')+1); // the last bit
+        String rawPath = line.substring(line.indexOf(' ')+1, line.lastIndexOf(' ')); // the middle part
+        String version = line.substring(line.lastIndexOf(' ')+1); // the last part
         if(!HttpRequest.SUPPORTED_METHODS.contains(method)){
             throw new UnsupportedHttpMethodException("Method "+ method +" is not supported.");
         }
 
-        // Cleaning up the path
-        while(path.contains("//"))
-            path = path.replaceAll("//", "/");
+        String path = cleanUpPath(rawPath);
         HashMap<String, String> args = parseParametersSafe(path);
         
         if(args.size() > 0){
-            path = path.substring(0, path.indexOf("?"));
+            path = path.substring(0, path.indexOf('?'));
             path = URLDecoder.decode(path, StandardCharsets.UTF_8);
             return new HttpRequestBasicInfo(method, path, version, args);
         }
@@ -220,17 +218,35 @@ public class RequestParser {
         return new HttpRequestBasicInfo(method, path, version);
     }
 
+    /**
+     * @param path relative path of a URI (eg. /path/to/file?param=value)
+     */
+    private static String cleanUpPath(String path){
+        if(path.indexOf('?') == -1){
+            while(path.contains("//"))
+                path = path.replaceAll("//", "/");
+        }else{
+            StringTokenizer pathTokenizer = new StringTokenizer(path, "?", false);
+            String url = pathTokenizer.nextToken();
+            while(url.contains("//"))
+                url = url.replaceAll("//", "/");
+            path = String.join("?", url, pathTokenizer.nextToken());
+        }
+        return path;
+    }
+
     private static HashMap<String, String> parseParametersSafe(String path){
-        if(path.indexOf('?') >= path.length()-1 || path.indexOf('?') == -1){
+        int indexQuestionMark = path.indexOf('?');
+        if(indexQuestionMark == -1 || indexQuestionMark >= path.length()-1){
             return new HashMap<>();
         }
-        String strArgs = path.substring(path.indexOf('?')+1);
+        String strArgs = path.substring(indexQuestionMark+1);
         return parseParameters(strArgs);
     }
 
     private static HashMap<String, String> parseParameters(String strArgs){
         HashMap<String, String> result = new HashMap<>();
-        if(strArgs.contains("&")){
+        if(strArgs.indexOf('&') != -1){
             String[] args = strArgs.split("&");
             for(String arg : args){
                 if(arg.indexOf('=') == -1){

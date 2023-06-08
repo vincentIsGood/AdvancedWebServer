@@ -27,6 +27,8 @@ public enum ErrorCodes {
 
     HTTP_1_1_REQUIRED   ((byte) 0xd); // use HTTP/1.1 for the request
 
+    private static final ErrorCodes[] VALUES = values();
+
     public final byte value;
 
     private ErrorCodes(byte value) {
@@ -38,7 +40,7 @@ public enum ErrorCodes {
      * @return null if not found
      */
     public static ErrorCodes fromByte(byte b){
-        for(ErrorCodes ele : values()) if(ele.value == b) return ele;
+        for(ErrorCodes ele : VALUES) if(ele.value == b) return ele;
         return null;
     }
 }

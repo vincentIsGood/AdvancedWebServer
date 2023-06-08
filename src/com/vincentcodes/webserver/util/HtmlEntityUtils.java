@@ -27,7 +27,7 @@ public class HtmlEntityUtils {
         StringBuilder builder = new StringBuilder();
         while((currentPosition = str.indexOf("&#", currentPosition)) != -1){
             int lowerbound = currentPosition+2;
-            int upperbound = str.indexOf(";", currentPosition);
+            int upperbound = str.indexOf(';', currentPosition);
             builder.append(str.substring(previousPosition, currentPosition)).append((char)Integer.parseInt(str.substring(lowerbound, upperbound)));
             currentPosition = upperbound;
             previousPosition = currentPosition+1; // skip ";"

@@ -18,6 +18,11 @@ public class HttpHandlerOptions {
             result = new HttpHandlerOptions();
         }
 
+        /**
+         * Allow the payload to be downloaded by the client as 
+         * an attachment to prevent clients from processing the 
+         * payload.
+         */
         public Builder asAttachment(){
             result.isAttachment = true;
             return this;
