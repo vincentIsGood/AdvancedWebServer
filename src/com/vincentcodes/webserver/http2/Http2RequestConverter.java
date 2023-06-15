@@ -126,12 +126,9 @@ public class Http2RequestConverter {
                 }
                 // skip the null payload frames
             }
-            // WebServer.logger.debug(headers.toString());
             try{
                 EntityInfo entityInfo = request.getHeaders().getEntityInfo();
                 if(entityInfo.getType().equals("multipart/form-data")){
-                    // TODO: there is a problem with Safari iOS sending an erroneous multipart data
-                    // TODO: problem 1: parseMultipartFormData has some problems...
                     TextBinaryInputStream tbis = new TextBinaryInputStream(new ByteArrayInputStream(request.getBody().getBytes()));
                     MultipartFormData multipart = RequestParser.parseMultipartFormData(tbis, entityInfo, new StringBuilder());
                     request.setMultipartFormData(multipart);
