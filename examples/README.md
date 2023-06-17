@@ -115,3 +115,7 @@ task runWebServer(type: Exec){
             "--extension", jar.archiveFile.get()
 }
 ```
+
+### Notes
+Sometimes adding new libraries to the extension is **not enough**, you may need to pack those 
+libraries `.class` files right **into** the `advwebserver_vX.Y.Z.jar` instead of `your_ext.jar`.
