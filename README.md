@@ -26,6 +26,22 @@ java -jar webserver.jar [<download / ssl>] [options]
 # [] = optional arguments 
 ```
 
+### Examples
+Serve local files
+```sh
+java -Dfile.encoding=utf-8 -jar advwebserver_vX.Y.Z.jar
+```
+
+Serve local files with http2 protocol, logging to a file and ssl/tls enabled. `multi` is often required to serve multiple clients (eg. browsers).
+```sh
+java -Dfile.encoding=UTF-8 -jar advwebserver_vX.Y.Z.jar ssl --multi --http2 -f key.jks --password password_for_keyjks --log --multi
+```
+
+Customize server behavior with `your_ext.jar`
+```sh
+java -Dfile.encoding=utf-8 -jar advwebserver_vX.Y.Z.jar --no-defaults --extension your_ext.jar
+```
+
 ## WebServer Extensions
 To add extensions to the server, I'll demonstrate it using a simple example for listing
 out the current directory.
