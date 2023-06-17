@@ -86,10 +86,10 @@ For **Intellij**, the process should be similar.
 
 ### Running it
 To run it, you are required to 
-1. create an executable jar
+1. create a jar
 2. execute the webserver command to add that extension to the server
 
-Package the `.class` files into an executable jar. Then run the webserver with the
+Package the `.class` files into a jar to create `your_ext.jar`. Then run the webserver with the
 following command:
 ```sh
 java -Dfile.encoding=utf-8 -jar advwebserver_vX.Y.Z.jar --no-defaults --extension your_ext.jar
