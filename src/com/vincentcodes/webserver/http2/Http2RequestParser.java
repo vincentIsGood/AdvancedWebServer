@@ -10,6 +10,7 @@ import com.vincentcodes.webserver.exception.InvalidFrameTypeException;
 import com.vincentcodes.webserver.http2.constants.FrameTypes;
 import com.vincentcodes.webserver.http2.hpack.HpackDecoder;
 import com.vincentcodes.webserver.util.ByteUtils;
+import com.vincentcodes.webserver.util.StreamReadWriteUtils;
 
 public class Http2RequestParser {
     private Http2Configuration config;
@@ -39,7 +40,7 @@ public class Http2RequestParser {
             byte[] nextThreeBytes = new byte[3];
             byte[] nextFourBytes = new byte[4];
 
-            detectEOS(is.read(nextThreeBytes));
+            StreamReadWriteUtils.detectEOS(is.read(nextThreeBytes));
             // baos.write(nextThreeBytes);
             frame.payloadLength = ByteUtils.getIntFromNBytes(nextThreeBytes, 0, 3);
 
@@ -55,7 +56,9 @@ public class Http2RequestParser {
 
             if(frame.payloadLength > 0){
                 byte[] payloadBytes = new byte[frame.payloadLength];
-                attemptToFillWholeBuffer(payloadBytes, is, frame.payloadLength);
+
+                // attempt to fill whole buffer is used to prevent DOS w/ half opened streams
+                StreamReadWriteUtils.ensureFilledBuffer(payloadBytes, is);
 
                 FrameTypes frameType = FrameTypes.fromByte(frame.type);
                 if(frameType == null)
@@ -71,29 +74,5 @@ public class Http2RequestParser {
             throw new IOException(e);
         }
         return frame;
-    }
-
-    /**
-     * Attempts to fill the whole buffer by reading the stream ONCE more. This is a
-     * BEST EFFORT operation. It is not guranteed to be filled.
-     * @return number of bytes read (This SHOULD be expectedLength == totalReadCount)
-     */
-    private int attemptToFillWholeBuffer(byte[] byteArray, InputStream is, int expectedLength) throws IOException{
-        int attemptedReadByteCount = is.read(byteArray);
-        int nextReadCount = 0;
-        if(attemptedReadByteCount != expectedLength){
-            nextReadCount = is.read(byteArray, attemptedReadByteCount, expectedLength-attemptedReadByteCount);
-        }
-        // WebServer.logger.warn("Index of null byte: " + ByteUtils.indexOf(byteArray, (byte)0));
-        // WebServer.logger.warn("First Attempt: " + attemptedReadByteCount + "/" + expectedLength);
-        // WebServer.logger.warn("Last  Attempt: " + (attemptedReadByteCount + nextReadCount) + "/" + expectedLength);
-        return attemptedReadByteCount + nextReadCount;
-    }
-
-    /**
-     * End of Stream
-     */
-    private void detectEOS(int bytesRead) throws IOException{
-        if(bytesRead == -1) throw new IOException("End of stream reached.");
     }
 }

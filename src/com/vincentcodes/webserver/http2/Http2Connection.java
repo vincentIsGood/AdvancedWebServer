@@ -5,7 +5,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.net.Socket;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -36,6 +38,7 @@ public class Http2Connection {
     private IOContainer ioContainer;
     private UpgradableSocket connection;
     private StreamStore streamStore;
+    private Set<Http2Stream> busyStreams;
 
     private HttpRequestValidator requestValidator;
     private HttpRequestDispatcher requestDispatcher;
@@ -53,6 +56,7 @@ public class Http2Connection {
         this.ioContainer = ioContainer;
         this.connection = ioContainer.getSocket();
         this.streamStore = new StreamStore();
+        busyStreams = new HashSet<>();
         this.requestValidator = requestValidator;
         this.requestDispatcher = requestDispatcher;
     }
@@ -75,7 +79,7 @@ public class Http2Connection {
     }
 
     /**
-     * @see Http2Stream#process()
+     * @see Http2Stream#processQueuedUpFrames()
      */
     private void universalInputHandler(Http2Stream stream, Http2Frame frame) throws IOException, InvocationTargetException{
         if(WebServer.lowLevelDebugMode && !(frame.payload instanceof WindowUpdateFrame))
@@ -135,7 +139,6 @@ public class Http2Connection {
             }
         }else if(frame.payload instanceof WindowUpdateFrame){
             stream.modifyServerWindow((WindowUpdateFrame)frame.payload);
-            stream.sendQueuedUpFrames();
         }else if(frame.payload instanceof PriorityFrame){
             // Not implemented, very complex (involves stream dependency stuff)
         }else if(frame.payload instanceof PingFrame){
@@ -147,6 +150,7 @@ public class Http2Connection {
         }else if(frame.payload instanceof GoAwayFrame){
             connection.close();
         }
+        stream.sendQueuedUpFrames();
     }
 
     /**
@@ -174,29 +178,35 @@ public class Http2Connection {
         ExecutorService executorService = Executors.newFixedThreadPool(2);
         while(isConnected()){
             Http2Frame requestFrame = http2Parser.parse(is);
-            executorService.submit(() -> {
-                try {
-                    // WebServer.logger.warn(Thread.currentThread().getName());
-                    handleNewFrame(requestFrame);
-                } catch (InvocationTargetException | IOException e) {
-                    if(WebServer.lowLevelDebugMode)
-                        e.printStackTrace();
-                }
-            });
-            // handleNewFrame(requestFrame);
+            Http2Stream stream = findCorrespondingStream(requestFrame);
+            stream.queueUpClientFrames(requestFrame);
+            
+            // TODO: Bug fixed regarding race condition, but still need more testing
+            if(!busyStreams.contains(stream)){
+                busyStreams.add(stream);
+                executorService.submit(() -> {
+                    try {
+                        stream.processQueuedUpFrames();
+                        busyStreams.remove(stream);
+                    } catch (InvocationTargetException | IOException e) {
+                        if(WebServer.lowLevelDebugMode)
+                            e.printStackTrace();
+                    }
+                });
+            }
         }
     }
 
-    private void handleNewFrame(Http2Frame requestFrame) throws InvocationTargetException, IOException{
+    private Http2Stream findCorrespondingStream(Http2Frame requestFrame) throws InvocationTargetException, IOException{
         Optional<Http2Stream> optStream = streamStore.findStream(requestFrame);
+        Http2Stream stream;
         if(optStream.isPresent()){
-            Http2Stream stream = optStream.get();
-            stream.process(requestFrame);
+            stream = optStream.get();
         }else{
-            Http2Stream newStream = new Http2Stream(requestFrame.streamIdentifier, this::universalInputHandler, this::universalOutputHandler, frameGenerator);
-            streamStore.addStream(newStream);
-            newStream.process(requestFrame);
+            stream = new Http2Stream(requestFrame.streamIdentifier, this::universalInputHandler, this::universalOutputHandler, frameGenerator);
+            streamStore.addStream(stream);
         }
+        return stream;
     }
 
     private ResponseBuilder handleHttpRequest(HttpRequest request) throws InvocationTargetException{
@@ -223,8 +233,8 @@ public class Http2Connection {
         return !(conn.isInputShutdown() || conn.isOutputShutdown());
     }
     
-    private void initConnectionChecker(){
-        new Thread("Http2 Connection Checker"){
+    private Thread initConnectionChecker(){
+        Thread thread = new Thread("Http2 Connection Checker"){
             public void run(){
                 try{
                     UpgradableSocket socket = ioContainer.getSocket();
@@ -238,7 +248,9 @@ public class Http2Connection {
                 }
                 return;
             }
-        }.start();
+        };
+        thread.start();
+        return thread;
     }
 
     private void sendPing() throws IOException, InvocationTargetException{
