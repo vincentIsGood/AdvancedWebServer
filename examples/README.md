@@ -33,6 +33,7 @@ public class DirectoryListingExtension{
 }
 ```
 
+### Explanation
 Use `@HttpHandler` to allow the server to use the class. `@AutoInjected` is used to create 
 singletons (to use custom constructors, you need to extend a class with `BeanDefinitions`
 and use `@Bean` to annotate a method which creates the object you want). For example:
