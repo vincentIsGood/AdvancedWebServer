@@ -2,9 +2,9 @@ package com.vincentcodes.webserver.http2;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import com.vincentcodes.webserver.WebServer;
 import com.vincentcodes.webserver.http2.constants.StreamState;
@@ -41,6 +41,7 @@ public class Http2Stream {
     // private int maxServerWindow;
     private int currentServerWindow;
     private Queue<Http2Frame> framesToBeSent;
+    private Queue<Http2Frame> framesToBeRead;
 
     private StreamIOHandler inputHandler;
     private StreamIOHandler outputHandler;
@@ -68,7 +69,8 @@ public class Http2Stream {
         this.frameGenerator = frameGenerator;
         this.converter = new Http2RequestConverter(frameGenerator);
 
-        framesToBeSent = new LinkedList<>();
+        framesToBeSent = new ConcurrentLinkedQueue<>();
+        framesToBeRead = new ConcurrentLinkedQueue<>();
     }
 
     public StreamState getState() {
@@ -107,6 +109,11 @@ public class Http2Stream {
         this.outputHandler = outputHandler;
     }
 
+    public void processQueuedUpFrames() throws IOException, InvocationTargetException{
+        while(framesToBeRead.size() > 0){
+            process(framesToBeRead.poll());
+        }
+    }
     /**
      * Process frame coming from the connection and changes state of 
      * the stream automatically. Both IO happens here.
@@ -117,6 +124,9 @@ public class Http2Stream {
         modifyClientWindow(frame);
         transitionState(frame, false);
         inputHandler.accept(this, frame);
+    }
+    public void queueUpClientFrames(Http2Frame frame){
+        framesToBeRead.add(frame);
     }
 
     /**
@@ -139,6 +149,10 @@ public class Http2Stream {
             send(frame);
         }
     }
+
+    /**
+     * Currently has NO effect
+     */
     public void sendQueuedUpFrames() throws InvocationTargetException, IOException{
         while(framesToBeSent.size() > 0 && currentServerWindow > 0){
             sendUnsafe(framesToBeSent.poll());
