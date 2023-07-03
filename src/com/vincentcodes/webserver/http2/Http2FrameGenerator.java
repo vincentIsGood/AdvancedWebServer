@@ -82,7 +82,7 @@ public class Http2FrameGenerator {
         List<Http2TableEntry> listHeaders = new ArrayList<>();
         listHeaders.add(new Http2TableEntry(":status", Integer.toString(status)));
         if(headers == null){
-            listHeaders.add(new Http2TableEntry("server", "vws"));
+            listHeaders.add(new Http2TableEntry("server", WebServer.SERVER_NAME));
             listHeaders.add(new Http2TableEntry("date", WebServer.DATE_FORMAT.format(new Date())));
             listHeaders.add(new Http2TableEntry("cache-control", "no-store"));
         }else{

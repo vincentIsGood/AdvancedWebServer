@@ -30,6 +30,7 @@ public class Main{
         config.addOption("--http2", true, "Beta. Force the use of protocol http2. Must be used with TLS.");
         config.addOption("--multi", true, "Enable multi-threading");
         config.addOption("--debug", true, "Enable debugging");
+        config.addOption("--name", false, "<name>", "Name used in server header");
     }
 
     public static void main(String[] args) throws IOException{
@@ -119,6 +120,13 @@ public class Main{
             // int verbosity = Integer.parseInt(cmd.getOptionValue("--debug"));
             WebServer.logger.warn("Debugging verbosity has not been implemented yet. Continue with 'all' debug messages");
             WebServer.lowLevelDebugMode = true;
+        }
+
+        if(cmd.hasOption("--name")){
+            String name = cmd.getOptionValue("--name");
+            if(name.trim().isEmpty())
+                throw new IllegalArgumentException("Value of option '--name' is invalid");
+            WebServer.SERVER_NAME = name;
         }
 
         if(serverBuilder != null){

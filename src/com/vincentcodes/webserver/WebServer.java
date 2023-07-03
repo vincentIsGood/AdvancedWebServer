@@ -77,6 +77,8 @@ import com.vincentcodes.webserver.reflect.MethodDecorator;
  */
 @Unreferenced(ClassReferences.class)
 public class WebServer {
+    public static String SERVER_NAME = "vws";
+
     public static final int MAX_THREAD_POOL_SIZE = 10;
 
     public static final int CONNECTION_READ_TIMEOUT_MILSEC = 6000; // 6s
