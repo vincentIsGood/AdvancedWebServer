@@ -92,40 +92,9 @@ public class Http2Connection {
 
             Optional<HttpRequest> optRequest = converter.toRequest();
             if(optRequest.isPresent()){
-                // Old buffering method
-                // try(HttpRequest req = optRequest.get(); ResponseBuilder response = handleHttpRequest(req)){
-                //     boolean ignoreMaxConstraint = !response.getHeaders().hasHeader("content-range");
-
-                //     int maxDataFrameAmount = (int)Math.floor((WebServer.MAX_PARTIAL_DATA_LENGTH+1)/config.getMaxFrameSize());
-                //     if(ignoreMaxConstraint)
-                //         maxDataFrameAmount = -1;
-                //     List<Http2Frame> frames = converter.fromResponse(response, maxDataFrameAmount);
-
-                //     // Max frame count is used to prevent safari from requesting a humongous payload
-                //     int maxFrameAmount = maxDataFrameAmount + Http2RequestConverter.getNonDataFrameCount(frames);
-                //     if(frames.size() <= maxFrameAmount){
-                //         stream.send(frames);
-                //     }else{
-                //         // just end the stream halfway (just like how safari treat me)
-                //         frames.add(maxFrameAmount+1, stream.getFrameGenerator().rstStreamFrame(-1, ErrorCodes.CANCEL));
-                //         stream.send(frames);
-                //     }
-                // }
                 try(HttpRequest req = optRequest.get(); ResponseBuilder response = handleHttpRequest(req)){
-                    // boolean ignoreMaxConstraint = !response.getHeaders().hasHeader("content-range") 
-                    //     && response.getHeaders().getEntityInfo().getLength() < 1024*1024; // 1MB
-                    
-                    // int maxDataFrameAmount = (int)Math.floor((WebServer.MAX_PARTIAL_DATA_LENGTH+1)/config.getMaxFrameSize());
-                    // if(ignoreMaxConstraint) maxDataFrameAmount = -1;
-                    
+                    WebServer.logger.debug(req.toHttp2String());
                     converter.streamResponseToStream(response, -1, stream);
-
-                    // if(!ignoreMaxConstraint){
-                    //     // Max frame count is used to prevent safari from requesting a humongous payload
-                    //     // This is also my problem of doing single threading badly (safari sent CANCEL 
-                    //     // but I am still busy sending in #streamResponseToStream)
-                    //     stream.send(stream.getFrameGenerator().rstStreamFrame(-1, ErrorCodes.CANCEL));
-                    // }
                 }
             }
             return;

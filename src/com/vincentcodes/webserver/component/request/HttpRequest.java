@@ -119,6 +119,9 @@ public class HttpRequest implements Closeable{
     public String toHttpString(){
         return toHttpString("HTTP/1.1", this);
     }
+    public String toHttp2String(){
+        return toHttpString("HTTP/2", this);
+    }
 
     /**
      * excludes the "?"
