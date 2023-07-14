@@ -79,7 +79,7 @@ import com.vincentcodes.webserver.reflect.MethodDecorator;
 public class WebServer {
     public static String SERVER_NAME = "vws";
 
-    public static final int MAX_THREAD_POOL_SIZE = 10;
+    public static final int MAX_THREAD_POOL_SIZE = 16;
 
     public static final int CONNECTION_READ_TIMEOUT_MILSEC = 6000; // 6s
     public static final int CONNECTION_WRITE_TIMEOUT_MILSEC = 120*(60*1000); // 120mins
@@ -87,6 +87,7 @@ public class WebServer {
     public static final int WEBSOCKET_PING_INTERVAL_MILSEC = 30*(60*1000); // 30mins
 
     public static final int MAX_HTTP2_STREAMS_INDEX = 65536-1; // default: 2**31-1
+    public static final int HTTP2_HANDLER_THREADS = 8;
 
     public static final boolean THROW_ERROR_WHEN_SEND_ON_CLOSED = true;
 

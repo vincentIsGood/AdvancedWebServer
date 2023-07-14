@@ -175,7 +175,7 @@ public class Http2Connection {
         streamStore.get(0).send(frameGenerator.settingsFrame(0));
         initConnectionChecker();
 
-        ExecutorService executorService = Executors.newFixedThreadPool(2);
+        ExecutorService executorService = Executors.newFixedThreadPool(WebServer.HTTP2_HANDLER_THREADS);
         while(isConnected()){
             Http2Frame requestFrame = http2Parser.parse(is);
             Http2Stream stream = findCorrespondingStream(requestFrame);
