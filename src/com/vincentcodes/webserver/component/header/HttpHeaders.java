@@ -56,8 +56,8 @@ public class HttpHeaders {
 
     /**
      * Get a header which you have previously added.
-     * @param key Note: All header keys are in lower case
-     * @return the http header name (eg. content-length) or <code>null</code> if nothing is found.
+     * @param key Note: All header keys are in lower case (eg. content-length)
+     * @return the http header value corresponding to the key or <code>null</code> if nothing is found.
      */
     public String getHeader(String key){
         return headers.get(key);

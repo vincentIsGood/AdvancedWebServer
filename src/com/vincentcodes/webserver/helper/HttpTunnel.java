@@ -1,5 +1,6 @@
 package com.vincentcodes.webserver.helper;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -22,13 +23,18 @@ import com.vincentcodes.webserver.component.response.ResponseParser;
  * res.getHeaders().add(response.getHeaders());
  * </pre>
  */
-public class HttpTunnel {
+public class HttpTunnel implements Closeable {
     private final String host;
     private final int port;
     private final boolean ssl;
     private Socket socket;
     private SSLSocketFactory sslSocketFactory;
 
+    /**
+     * Connection is made to the destination when 
+     * {@link #send(HttpRequest)} or {@link #sendOnce(HttpRequest)}
+     * is called.
+     */
     public HttpTunnel(String host, int port, boolean ssl){
         this.host = host;
         this.port = port;
@@ -46,18 +52,25 @@ public class HttpTunnel {
         socket = createSocket();
     }
 
+    @Override
     public void close() throws IOException{
-        socket.close();
+        if(socket != null)
+            socket.close();
     }
 
     /**
-     * If this method is used, {@link #open()} and {@link #close()}
-     * are needed. If you want to send request once, use 
-     * {@link #sendOnce(HttpRequest)} instead.
+     * If this method is used, If you want to send request once, 
+     * use {@link #sendOnce(HttpRequest)} instead.
+     * <p>
+     * Lazying loading is implemented. If {@link #send(HttpRequest)}
+     * is called the first time, a connection will be made to the 
+     * destination.
      * @param request a request to be tunneled
      * @return a parsed response coming from the dest webserver.
      */
     public ResponseBuilder send(HttpRequest request) throws IOException{
+        if(socket == null) open();
+
         OutputStream os = socket.getOutputStream();
         InputStream is = socket.getInputStream();
 
