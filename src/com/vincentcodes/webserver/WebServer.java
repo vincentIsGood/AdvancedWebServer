@@ -79,7 +79,7 @@ import com.vincentcodes.webserver.reflect.MethodDecorator;
 public class WebServer {
     public static String SERVER_NAME = "vws";
 
-    public static final int MAX_THREAD_POOL_SIZE = 16;
+    public static final int MAX_THREAD_POOL_SIZE = 64;
 
     public static final int CONNECTION_READ_TIMEOUT_MILSEC = 6000; // 6s
     public static final int CONNECTION_WRITE_TIMEOUT_MILSEC = 120*(60*1000); // 120mins

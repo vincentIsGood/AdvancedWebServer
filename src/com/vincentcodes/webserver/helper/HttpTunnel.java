@@ -107,6 +107,10 @@ public class HttpTunnel implements Closeable {
         }
     }
 
+    public Socket getSocket(){
+        return this.socket;
+    }
+
     private Socket createSocket() throws IOException{
         if(ssl){
             return createSSLSocket();
