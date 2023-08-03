@@ -139,6 +139,7 @@ public class ServerThread extends Thread{
         final ResponseBuilder response;
 
         try(HttpRequest request = RequestParser.parse(is)){
+            request.setSocket(this.socketIOContainer);
             previousHttpRequest = request;
             if(!requestValidator.requestIsValid(request))
                 request.invalid();

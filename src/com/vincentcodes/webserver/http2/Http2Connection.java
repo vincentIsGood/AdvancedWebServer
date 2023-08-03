@@ -92,8 +92,12 @@ public class Http2Connection {
 
             Optional<HttpRequest> optRequest = converter.toRequest();
             if(optRequest.isPresent()){
-                try(HttpRequest req = optRequest.get(); ResponseBuilder response = handleHttpRequest(req)){
+                try(HttpRequest req = optRequest.get()){
+                    req.setSocket(this.ioContainer);
+
                     WebServer.logger.debug(req.toHttp2String());
+                    ResponseBuilder response = handleHttpRequest(req);
+                    
                     converter.streamResponseToStream(response, -1, stream);
                 }
             }

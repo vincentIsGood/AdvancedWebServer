@@ -19,6 +19,7 @@ import com.vincentcodes.webserver.dispatcher.operation.MethodInvocationStrategy;
 import com.vincentcodes.webserver.reflect.MethodDecorator;
 import com.vincentcodes.webserver.util.FileExtUtils;
 
+// TODO: response strategy?
 public class HttpInvocationStrategy implements MethodInvocationStrategy {
 
     @Override
