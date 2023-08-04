@@ -7,7 +7,6 @@ import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.SocketTimeoutException;
-import java.util.Optional;
 
 import javax.net.ssl.SSLParameters;
 
@@ -18,13 +17,8 @@ import com.vincentcodes.webserver.component.request.RequestParser;
 import com.vincentcodes.webserver.component.response.HttpResponses;
 import com.vincentcodes.webserver.component.response.ResponseBuilder;
 import com.vincentcodes.webserver.dispatcher.HttpRequestDispatcher;
-import com.vincentcodes.webserver.exception.CannotParseRequestException;
 import com.vincentcodes.webserver.helper.IOContainer;
-import com.vincentcodes.webserver.http2.Http2Connection;
 import com.vincentcodes.webserver.util.HttpRedirecter;
-import com.vincentcodes.websocket.WebSocket;
-import com.vincentcodes.websocket.WebSocketHandlerSelector;
-import com.vincentcodes.websocket.handler.WebSocketOperator;
 
 public class ServerThread extends Thread{
     private final WebServer.Configuration serverConfig;
@@ -107,13 +101,15 @@ public class ServerThread extends Thread{
             if(!configureConnection())
                 return;
 
-            handleHttpConnection();
+            ResponseBuilder response = handleHttpConnection();
 
             // upgrades are defined inside #handleHttpConnection() 
             if(currentProtocol == WebProtocol.HTTP_TWO){
-                http2Initialization();
+                ServerThreadUtils.http2Initialization(socketIOContainer, requestValidator, requestDispatcher);
             }else if(currentProtocol == WebProtocol.WEB_SOCKET){
-                websocketInitialization();
+                ServerThreadUtils.websocketInitialization(previousHttpRequest, socketIOContainer);
+            }else if(currentProtocol == WebProtocol.TUNNEL){
+                ServerThreadUtils.socketTunnelInitialization(previousHttpRequest, response, this::httpReplyClient);
             }
         }catch(Exception e){
             WebServer.logger.err("Catching a "+e.getClass().getName()+": " + e.getMessage());
@@ -132,8 +128,11 @@ public class ServerThread extends Thread{
         return;
     }
 
-    // -------------- Different Protocol Handlers -------------- //
-    private void handleHttpConnection() throws SocketTimeoutException, IOException, InvocationTargetException{
+    /**
+     * HTTP/1.1 handler. Dispatcher works here. Sends server response here.
+     * @return Response corresponding to the request coming from the client for further processing.
+     */
+    private ResponseBuilder handleHttpConnection() throws SocketTimeoutException, IOException, InvocationTargetException{
         InputStream is = socketIOContainer.getInputStream();
         OutputStream os = socketIOContainer.getOutputStream();
         final ResponseBuilder response;
@@ -144,8 +143,14 @@ public class ServerThread extends Thread{
             if(!requestValidator.requestIsValid(request))
                 request.invalid();
             
+            dispatch:
             if(request.isValid()){
                 response = requestDispatcher.dispatchObjectToHandlers(request);
+
+                if(response.getHeaders().getHeader("X-Vws-Raw-Tunnel") != null){
+                    currentProtocol = WebProtocol.TUNNEL;
+                    break dispatch;
+                }
 
                 // upgrade stuff (both party agrees to upgrade)
                 String responseUpgradeHeader = response.getHeaders().getHeader("upgrade");
@@ -166,12 +171,13 @@ public class ServerThread extends Thread{
 
         // in http2, websocket they have their own ping/pong mechanism
         clientConnection.getUnderlyingSocket().setSoTimeout(0);
+        return response;
     }
     /**
      * @param response [be closed] response to be sent
      * @param os send response to this output stream
      */
-    private void httpReplyClient(ResponseBuilder response, OutputStream os) throws IOException{
+    private void httpReplyClient(ResponseBuilder response, OutputStream os){
         try(response){
             String resHeadersString = response.asString();
             os.write(resHeadersString.getBytes());
@@ -183,34 +189,8 @@ public class ServerThread extends Thread{
                 response.getBody().streamBytesTo(os);
                 writeTimeout.tryStop();
             }
-        }
-    }
-
-    /**
-     * Still in experimental phase
-     */
-    private void http2Initialization() throws IOException, CannotParseRequestException, InvocationTargetException{
-        Http2Connection http2Connection = new Http2Connection(socketIOContainer, requestValidator, requestDispatcher);
-        http2Connection.setup();
-        http2Connection.takeover();
-    }
-
-    /**
-     * WebSocket is supported. But it still needs more testings
-     */
-    private void websocketInitialization() throws IOException, ReflectiveOperationException{
-        WebSocketHandlerSelector selector = new WebSocketHandlerSelector();
-        WebSocket ws = new WebSocket(previousHttpRequest.getBasicInfo().getPath(), socketIOContainer);
-
-        Optional<WebSocketOperator> chosenOperator = selector.searchForHandler(ws);
-        if(chosenOperator.isPresent()){
-            WebSocketConnection connection = new WebSocketConnection(ws, chosenOperator.get().getClass());
-            try{
-                connection.init();
-                connection.start();
-            }finally{
-                connection.close();
-            }
+        }catch(IOException e){
+            throw new UncheckedIOException(e);
         }
     }
 
@@ -227,6 +207,7 @@ public class ServerThread extends Thread{
                     e.printStackTrace();
                 }
         });
+        timeoutThread.setDaemon(true);
         timeoutThread.start();
         return timeoutThread;
     }

@@ -83,6 +83,7 @@ public class WebServer {
 
     public static final int CONNECTION_READ_TIMEOUT_MILSEC = 6000; // 6s
     public static final int CONNECTION_WRITE_TIMEOUT_MILSEC = 120*(60*1000); // 120mins
+    public static final int TUNNEL_READ_TIMEOUT_MILSEC = 120*(60*1000); // 120mins
 
     public static final int WEBSOCKET_PING_INTERVAL_MILSEC = 30*(60*1000); // 30mins
 

@@ -12,6 +12,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import com.vincentcodes.net.UpgradableSocket;
+import com.vincentcodes.webserver.ServerThreadUtils;
 import com.vincentcodes.webserver.WebServer;
 import com.vincentcodes.webserver.component.request.HttpRequest;
 import com.vincentcodes.webserver.component.request.HttpRequestValidator;
@@ -79,6 +80,7 @@ public class Http2Connection {
     }
 
     /**
+     * @throws InterruptedException
      * @see Http2Stream#processQueuedUpFrames()
      */
     private void universalInputHandler(Http2Stream stream, Http2Frame frame) throws IOException, InvocationTargetException{
@@ -97,6 +99,21 @@ public class Http2Connection {
 
                     WebServer.logger.debug(req.toHttp2String());
                     ResponseBuilder response = handleHttpRequest(req);
+                    
+                    if(response.getHeaders().getHeader("X-Vws-Raw-Tunnel") != null){
+                        try {
+                            ServerThreadUtils.socketTunnelInitialization(req, response, (remoteServerRes, os)->{
+                                try {
+                                    converter.streamResponseToStream(remoteServerRes, -1, stream);
+                                } catch (InvocationTargetException | IOException e) {
+                                    throw new RuntimeException(e);
+                                }
+                            });
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                        return;
+                    }
                     
                     converter.streamResponseToStream(response, -1, stream);
                 }
@@ -207,7 +224,7 @@ public class Http2Connection {
     }
     
     private Thread initConnectionChecker(){
-        Thread thread = new Thread("Http2 Connection Checker"){
+        Thread connectionChecker = new Thread("Http2 Connection Checker"){
             public void run(){
                 try{
                     UpgradableSocket socket = ioContainer.getSocket();
@@ -222,8 +239,9 @@ public class Http2Connection {
                 return;
             }
         };
-        thread.start();
-        return thread;
+        connectionChecker.setDaemon(true);
+        connectionChecker.start();
+        return connectionChecker;
     }
 
     private void sendPing() throws IOException, InvocationTargetException{

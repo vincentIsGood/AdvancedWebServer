@@ -60,6 +60,7 @@ public class HttpHeaders {
      * @return the http header value corresponding to the key or <code>null</code> if nothing is found.
      */
     public String getHeader(String key){
+        key = key.toLowerCase();
         return headers.get(key);
     }
 

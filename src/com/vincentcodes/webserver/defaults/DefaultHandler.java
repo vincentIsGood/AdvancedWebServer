@@ -8,6 +8,7 @@ import com.vincentcodes.webserver.annotaion.response.Mutatable;
 import com.vincentcodes.webserver.component.request.HttpRequest;
 import com.vincentcodes.webserver.component.response.ResponseBuilder;
 import com.vincentcodes.webserver.util.FileControl;
+import com.vincentcodes.webserver.util.TunnelUtils;
 
 /**
  * This class is used to serve any kind of files normally (enabled by default)
@@ -70,6 +71,11 @@ public class DefaultHandler {
     //     res.getHeaders().add("content-type", "text/plain");
     //     res.getHeaders().add("content-length", "0");
     //     FileControl.save(req, server.getConfiguration());
+    // }
+
+    // @RequestMapping("/tunnel")
+    // public void proxyHandler(HttpRequest req, ResponseBuilder res){
+    //     TunnelUtils.setupTunnel(res, "127.0.0.1:1234", true);
     // }
     
     // ------- Default ------- //
