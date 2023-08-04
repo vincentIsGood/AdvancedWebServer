@@ -103,7 +103,6 @@ public class ServerThread extends Thread{
 
             ResponseBuilder response = handleHttpConnection();
 
-            // upgrades are defined inside #handleHttpConnection() 
             if(currentProtocol == WebProtocol.HTTP_TWO){
                 ServerThreadUtils.http2Initialization(socketIOContainer, requestValidator, requestDispatcher);
             }else if(currentProtocol == WebProtocol.WEB_SOCKET){
@@ -167,7 +166,8 @@ public class ServerThread extends Thread{
             }
         }
 
-        httpReplyClient(response, os);
+        if(currentProtocol != WebProtocol.TUNNEL)
+            httpReplyClient(response, os);
 
         // in http2, websocket they have their own ping/pong mechanism
         clientConnection.getUnderlyingSocket().setSoTimeout(0);

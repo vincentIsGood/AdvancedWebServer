@@ -1,6 +1,9 @@
 package com.vincentcodes.webserver;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.lang.reflect.InvocationTargetException;
@@ -51,10 +54,12 @@ public class ServerThreadUtils {
     }
 
     /**
+     * This is a blocking method.
      * @param request client request
      * @param response Response of this webserver corresponding to the client request. 
      * It checks if any handlers allows the use of tunneling
-     * @param httpReplyClient this consumer is only used whenever request exchange happens. 
+     * @param httpReplyClient this consumer is only used whenever request exchange happens 
+     * and when header {@code X-Vws-Exchange-Format} is set to value other than {@code raw}
      * It takes remote server response as the 1st arg and output stream of the current 
      * webserver's socket as the 2nd arg.
      */
@@ -71,28 +76,29 @@ public class ServerThreadUtils {
         }
 
         Thread wsReaderThread = null;
-        System.out.println("starting tunnel to: " + tunnelDest + " " + port);
         try(HttpTunnel tunnel = new HttpTunnel(tunnelDest, port)){
-            IOContainer socket = request.getSocket();
             tunnel.open();
-
+            IOContainer socket = request.getSocket();
+            BufferedInputStream tunnelIs = new BufferedInputStream(tunnel.getSocket().getInputStream());
+            BufferedOutputStream tunnelOs = new BufferedOutputStream(tunnel.getSocket().getOutputStream());
+            
             if(exchangeRequest){
                 // Just reply client, without modifying their response.
                 httpReplyClient.accept(tunnel.send(request), socket.getOutputStream());
             }
 
-            wsReaderThread = new Thread(){
+            (wsReaderThread = new Thread("Tunnel: WS Reader Thread"){
                 @Override
                 public void run() {
                     try {
-                        HttpTunnel.streamToUntilClose(tunnel.getSocket().getInputStream(), socket.getOutputStream());
+                        HttpTunnel.streamToUntilClose(tunnelIs, socket.getOutputStream());
                     } catch (IOException e) {
                         throw new UncheckedIOException(e);
                     }
                 }
-            };
-            wsReaderThread.start();
-            HttpTunnel.streamToUntilClose(socket.getInputStream(), tunnel.getSocket().getOutputStream());
+            }).start();
+
+            HttpTunnel.streamToUntilClose(socket.getInputStream(), tunnelOs);
         }finally{
             if(wsReaderThread != null){
                 wsReaderThread.interrupt();

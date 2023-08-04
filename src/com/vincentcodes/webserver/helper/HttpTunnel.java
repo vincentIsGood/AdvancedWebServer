@@ -123,6 +123,7 @@ public class HttpTunnel implements Closeable {
         if(request.getBody() != null && request.getBody().length() > 0){
             os.write(request.getBody().getBytes());
         }
+        os.flush();
     }
     
     public static void streamToUntilClose(InputStream is, OutputStream os) throws IOException{
@@ -130,6 +131,7 @@ public class HttpTunnel implements Closeable {
         int numOfBytesRead = 0;
         while((numOfBytesRead = is.read(buffer)) != -1){
             os.write(buffer, 0, numOfBytesRead);
+            os.flush();
         }
     }
 }
