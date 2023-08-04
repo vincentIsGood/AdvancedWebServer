@@ -1,17 +1,13 @@
 package com.vincentcodes.webserver.defaults;
 
-import java.io.IOException;
-
 import com.vincentcodes.webserver.WebServer;
 import com.vincentcodes.webserver.annotaion.AutoInjected;
 import com.vincentcodes.webserver.annotaion.HttpHandler;
-import com.vincentcodes.webserver.annotaion.request.HttpGet;
 import com.vincentcodes.webserver.annotaion.request.RequestMapping;
 import com.vincentcodes.webserver.annotaion.response.Mutatable;
 import com.vincentcodes.webserver.component.request.HttpRequest;
 import com.vincentcodes.webserver.component.response.ResponseBuilder;
 import com.vincentcodes.webserver.util.FileControl;
-import com.vincentcodes.webserver.util.TunnelUtils;
 
 /**
  * This class is used to serve any kind of files normally (enabled by default)
