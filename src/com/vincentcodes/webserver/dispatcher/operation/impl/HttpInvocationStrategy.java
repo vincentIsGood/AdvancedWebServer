@@ -60,14 +60,12 @@ public class HttpInvocationStrategy implements MethodInvocationStrategy {
      * Default handler for a response. Features include (handling non-existent
      * files, file extensions, streaming service and response headers). In addition,
      * this method is only able to spit out these response codes: 200, 206, 404, 416. 
-     * To handle this yourself, you need to use VOID as a return type 
-     * from methods in an &#64;HttpHandler annotated class.
-     * </p>
+     * To handle this yourself, you need to VOID as return type and mutate the response 
+     * yourself.
      * <p>
      * If you want your handler to return a File instance but NOTHING for something else,
-     * what you can do is a little trick shown as follows... (return an Object, it's very 
-     * ambiguous but it is a catch-all type)
-     * </p>
+     * what you can do is to return an Object, it's very ambiguous but it is a catch-all 
+     * type.
      * <pre>{@code
      * &#64;HttpGet
      * &#64;Mutatable
@@ -104,7 +102,7 @@ public class HttpInvocationStrategy implements MethodInvocationStrategy {
             if(returnBody instanceof File)
                 return handleFile(request, (File)returnBody, result.getOptions());
             
-            // TODO: options won't work in normal non-file objects for now
+            // TODO: Options only work for File objects. Extend its capabilities
             return handleResponseBody(request, returnBody);
         } else if (body != null) {
             return HttpResponses.useObjectAsBody(body);

@@ -31,15 +31,6 @@ public class DefaultHandler {
     //     return "{'msg':'nothing special here'}";
     // }
 
-    /**
-     * This method is flawed, since it handles the favicon at the root
-     * of the directory only.
-     */
-    // @RequestMapping("/favicon.ico")
-    // public void handleFavIcon(HttpRequest req, ResponseBuilder res){
-    //     res.setResponseCode(404);
-    // }
-
     // @Mutatable
     // @InvocationCondition({DirectoryOnly.class})
     // @RequestMapping("/**")
@@ -50,36 +41,25 @@ public class DefaultHandler {
     // }
 
     // @Mutatable
-    // @InvocationCondition({NoDirectory.class})
-    // @RequestMapping("/**")
-    // public Object catchAllFileHandler(HttpRequest req, ResponseBuilder res){
-    //     WebServer.Configuration config = server.getConfiguration();
-    //     return FileControl.get(req, config);
-    // }
-
-    // @RequestMapping("/ws")
-    // public void wsUpgrade(HttpRequest req, ResponseBuilder res){
-    //     WebSocketUpgrader.upgrade(req, res);
-    // }
-
-    // @Mutatable
     // @HttpPut
     // @RequestMapping("/samplewebpages/*")
     // public void handlePutRequests(HttpRequest req, ResponseBuilder res){
     //     res.setResponseCode(201);
-    //     res.getHeaders().add("content-type", "text/plain");
-    //     res.getHeaders().add("content-length", "0");
     //     FileControl.save(req, server.getConfiguration());
-    // }
-
-    // @RequestMapping("/tunnel")
-    // public void proxyHandler(HttpRequest req, ResponseBuilder res){
-    //     TunnelUtils.setupTunnel(res, "127.0.0.1:1234", true);
     // }
 
     // @RequestMapping("/**")
     // public void tunnelWebapp(HttpRequest req, ResponseBuilder res) throws IOException, InterruptedException{
     //     TunnelUtils.setupTunnel(res, "127.0.0.1:5023", true);
+    // }
+
+    // @RequestMapping("/**")
+    // public Object serveStatic(HttpRequest req, ResponseBuilder res){
+    //     File file = FileControl.get(req, server.getConfiguration());
+    //     if(req.getBasicInfo().getParameter("download") != null){
+    //         return new HttpHandlerResult(file, new HttpHandlerOptions.Builder().asAttachment().build());
+    //     }
+    //     return file;
     // }
     
     // ------- Default ------- //
