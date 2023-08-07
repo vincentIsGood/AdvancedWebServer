@@ -12,6 +12,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import com.vincentcodes.net.UpgradableSocket;
+import com.vincentcodes.webserver.ServerThreadUtils;
 import com.vincentcodes.webserver.WebServer;
 import com.vincentcodes.webserver.component.request.HttpRequest;
 import com.vincentcodes.webserver.component.request.HttpRequestValidator;
@@ -79,6 +80,7 @@ public class Http2Connection {
     }
 
     /**
+     * @throws InterruptedException
      * @see Http2Stream#processQueuedUpFrames()
      */
     private void universalInputHandler(Http2Stream stream, Http2Frame frame) throws IOException, InvocationTargetException{
@@ -92,40 +94,28 @@ public class Http2Connection {
 
             Optional<HttpRequest> optRequest = converter.toRequest();
             if(optRequest.isPresent()){
-                // Old buffering method
-                // try(HttpRequest req = optRequest.get(); ResponseBuilder response = handleHttpRequest(req)){
-                //     boolean ignoreMaxConstraint = !response.getHeaders().hasHeader("content-range");
+                try(HttpRequest req = optRequest.get()){
+                    req.setSocket(this.ioContainer);
 
-                //     int maxDataFrameAmount = (int)Math.floor((WebServer.MAX_PARTIAL_DATA_LENGTH+1)/config.getMaxFrameSize());
-                //     if(ignoreMaxConstraint)
-                //         maxDataFrameAmount = -1;
-                //     List<Http2Frame> frames = converter.fromResponse(response, maxDataFrameAmount);
-
-                //     // Max frame count is used to prevent safari from requesting a humongous payload
-                //     int maxFrameAmount = maxDataFrameAmount + Http2RequestConverter.getNonDataFrameCount(frames);
-                //     if(frames.size() <= maxFrameAmount){
-                //         stream.send(frames);
-                //     }else{
-                //         // just end the stream halfway (just like how safari treat me)
-                //         frames.add(maxFrameAmount+1, stream.getFrameGenerator().rstStreamFrame(-1, ErrorCodes.CANCEL));
-                //         stream.send(frames);
-                //     }
-                // }
-                try(HttpRequest req = optRequest.get(); ResponseBuilder response = handleHttpRequest(req)){
-                    // boolean ignoreMaxConstraint = !response.getHeaders().hasHeader("content-range") 
-                    //     && response.getHeaders().getEntityInfo().getLength() < 1024*1024; // 1MB
+                    WebServer.logger.debug(req.toHttp2String());
+                    ResponseBuilder response = handleHttpRequest(req);
                     
-                    // int maxDataFrameAmount = (int)Math.floor((WebServer.MAX_PARTIAL_DATA_LENGTH+1)/config.getMaxFrameSize());
-                    // if(ignoreMaxConstraint) maxDataFrameAmount = -1;
+                    if(response.getHeaders().getHeader("X-Vws-Raw-Tunnel") != null){
+                        try {
+                            ServerThreadUtils.socketTunnelInitialization(req, response, (remoteServerRes, os)->{
+                                try {
+                                    converter.streamResponseToStream(remoteServerRes, -1, stream);
+                                } catch (InvocationTargetException | IOException e) {
+                                    throw new RuntimeException(e);
+                                }
+                            });
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                        return;
+                    }
                     
                     converter.streamResponseToStream(response, -1, stream);
-
-                    // if(!ignoreMaxConstraint){
-                    //     // Max frame count is used to prevent safari from requesting a humongous payload
-                    //     // This is also my problem of doing single threading badly (safari sent CANCEL 
-                    //     // but I am still busy sending in #streamResponseToStream)
-                    //     stream.send(stream.getFrameGenerator().rstStreamFrame(-1, ErrorCodes.CANCEL));
-                    // }
                 }
             }
             return;
@@ -175,7 +165,7 @@ public class Http2Connection {
         streamStore.get(0).send(frameGenerator.settingsFrame(0));
         initConnectionChecker();
 
-        ExecutorService executorService = Executors.newFixedThreadPool(2);
+        ExecutorService executorService = Executors.newFixedThreadPool(WebServer.HTTP2_HANDLER_THREADS);
         while(isConnected()){
             Http2Frame requestFrame = http2Parser.parse(is);
             Http2Stream stream = findCorrespondingStream(requestFrame);
@@ -234,7 +224,7 @@ public class Http2Connection {
     }
     
     private Thread initConnectionChecker(){
-        Thread thread = new Thread("Http2 Connection Checker"){
+        Thread connectionChecker = new Thread("Http2 Connection Checker"){
             public void run(){
                 try{
                     UpgradableSocket socket = ioContainer.getSocket();
@@ -249,8 +239,9 @@ public class Http2Connection {
                 return;
             }
         };
-        thread.start();
-        return thread;
+        connectionChecker.setDaemon(true);
+        connectionChecker.start();
+        return connectionChecker;
     }
 
     private void sendPing() throws IOException, InvocationTargetException{

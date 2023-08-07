@@ -61,7 +61,7 @@ public class ResponseBuilder implements Closeable {
     private static HttpHeaders getDefaulHeaders(){
         HttpHeaders headers = new HttpHeaders();
         headers.add("Date", WebServer.DATE_FORMAT.format(new Date()));
-        headers.add("Server", "vws"); // vincent web server
+        headers.add("Server", WebServer.SERVER_NAME);
         // headers.add("Cache-Control", "no-store");
         return headers;
     }

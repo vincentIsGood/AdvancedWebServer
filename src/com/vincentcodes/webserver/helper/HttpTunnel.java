@@ -1,5 +1,6 @@
 package com.vincentcodes.webserver.helper;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -7,6 +8,7 @@ import java.net.Socket;
 
 import javax.net.ssl.SSLSocketFactory;
 
+import com.vincentcodes.webserver.WebServer;
 import com.vincentcodes.webserver.component.request.HttpRequest;
 import com.vincentcodes.webserver.component.response.ResponseBuilder;
 import com.vincentcodes.webserver.component.response.ResponseParser;
@@ -22,13 +24,19 @@ import com.vincentcodes.webserver.component.response.ResponseParser;
  * res.getHeaders().add(response.getHeaders());
  * </pre>
  */
-public class HttpTunnel {
+public class HttpTunnel implements Closeable {
+    private static final int READ_TIMEOUT = WebServer.TUNNEL_READ_TIMEOUT_MILSEC;
     private final String host;
     private final int port;
     private final boolean ssl;
     private Socket socket;
     private SSLSocketFactory sslSocketFactory;
 
+    /**
+     * Connection is made to the destination when 
+     * {@link #send(HttpRequest)} or {@link #sendOnce(HttpRequest)}
+     * is called.
+     */
     public HttpTunnel(String host, int port, boolean ssl){
         this.host = host;
         this.port = port;
@@ -46,18 +54,24 @@ public class HttpTunnel {
         socket = createSocket();
     }
 
+    @Override
     public void close() throws IOException{
-        socket.close();
+        if(socket != null)
+            socket.close();
     }
 
     /**
-     * If this method is used, {@link #open()} and {@link #close()}
-     * are needed. If you want to send request once, use 
-     * {@link #sendOnce(HttpRequest)} instead.
+     * If you want to send request once, use {@link #sendOnce(HttpRequest)} instead.
+     * <p>
+     * Lazying loading is implemented. If {@link #send(HttpRequest)}
+     * is called the first time, a connection will be made to the 
+     * destination.
      * @param request a request to be tunneled
      * @return a parsed response coming from the dest webserver.
      */
     public ResponseBuilder send(HttpRequest request) throws IOException{
+        if(socket == null) open();
+
         OutputStream os = socket.getOutputStream();
         InputStream is = socket.getInputStream();
 
@@ -83,6 +97,23 @@ public class HttpTunnel {
         }
     }
 
+    public Socket getSocket(){
+        return this.socket;
+    }
+
+    private Socket createSocket() throws IOException{
+        Socket socket;
+        if(ssl){
+            socket = createSSLSocket();
+        }else socket = new Socket(host, port);
+        socket.setSoTimeout(READ_TIMEOUT);
+        return socket;
+    }
+
+    private Socket createSSLSocket() throws IOException{
+        return sslSocketFactory.createSocket(host, port);
+    }
+
     public static void writeRequestToOutputStream(OutputStream os, HttpRequest request) throws IOException{
         if(request.getWholeRequest() == null){
             os.write(request.toHttpString().getBytes());
@@ -92,16 +123,15 @@ public class HttpTunnel {
         if(request.getBody() != null && request.getBody().length() > 0){
             os.write(request.getBody().getBytes());
         }
+        os.flush();
     }
-
-    private Socket createSocket() throws IOException{
-        if(ssl){
-            return createSSLSocket();
+    
+    public static void streamToUntilClose(InputStream is, OutputStream os) throws IOException{
+        byte[] buffer = new byte[2024];
+        int numOfBytesRead = 0;
+        while((numOfBytesRead = is.read(buffer)) != -1){
+            os.write(buffer, 0, numOfBytesRead);
+            os.flush();
         }
-        return new Socket(host, port);
-    }
-
-    private Socket createSSLSocket() throws IOException{
-        return sslSocketFactory.createSocket(host, port);
     }
 }

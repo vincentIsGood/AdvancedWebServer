@@ -123,7 +123,7 @@ public class WebSocket {
      * </pre>
      */
     public void initConnectionChecker(){
-        new Thread("WebSocket Connection Checker"){
+        Thread connectionChecker = new Thread("WebSocket Connection Checker"){
             public void run(){
                 try{
                     UpgradableSocket socket = ioContainer.getSocket();
@@ -137,7 +137,9 @@ public class WebSocket {
                 }
                 return;
             }
-        }.start();
+        };
+        connectionChecker.setDaemon(true);
+        connectionChecker.start();
     }
 
     public void sendPing() throws IOException{

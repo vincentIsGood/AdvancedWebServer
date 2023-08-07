@@ -159,7 +159,7 @@ public class Http2Stream {
         }
     }
     /**
-     * Will queue up frames if server's window is not enough.
+     * [Removed] Will queue up frames if server's window is not enough.
      * Will resend them AS SOON AS WindowUpdate is received.
      */
     private void sendUnsafe(Http2Frame frame) throws IOException, InvocationTargetException{

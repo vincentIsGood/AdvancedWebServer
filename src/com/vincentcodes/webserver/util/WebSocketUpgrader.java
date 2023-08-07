@@ -37,7 +37,16 @@ public class WebSocketUpgrader {
 
     /**
      * Mutates the request and response to accommodate the requirements
-     * for the upgrade (defined by the webserver)
+     * for the upgrade (defined by the webserver).
+     * <p>
+     * Example usage:
+     * <pre>{@code
+     *  &#64;RequestMapping("/ws")
+     *  public void wsUpgrade(HttpRequest req, ResponseBuilder res){
+     *      WebSocketUpgrader.upgrade(req, res);
+     *  }
+     * }</pre>
+     * Use JavaScript to test this out {@code const ws = new WebSocket("ws://localhost:5050/ws")}
      * @param request [mutate]
      * @param response [mutate]
      */

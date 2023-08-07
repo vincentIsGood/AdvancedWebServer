@@ -1,5 +1,8 @@
 package com.vincentcodes.webserver.dispatcher;
 
+/**
+ * @link HttpHandlerResult
+ */
 public class HttpHandlerOptions {
     private boolean isAttachment;
 

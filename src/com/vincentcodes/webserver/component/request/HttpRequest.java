@@ -12,9 +12,12 @@ import java.util.stream.Collectors;
 import com.vincentcodes.webserver.WebServer;
 import com.vincentcodes.webserver.component.body.HttpBody;
 import com.vincentcodes.webserver.component.header.HttpHeaders;
+import com.vincentcodes.webserver.helper.IOContainer;
 
 public class HttpRequest implements Closeable{
     public static final List<String> SUPPORTED_METHODS = WebServer.SUPPORTED_REQUEST_METHOD.keySet().stream().collect(Collectors.toList());
+
+    private IOContainer socket;
 
     private boolean isRequestValid = true;
     private HttpRequestBasicInfo basicInfo;
@@ -22,6 +25,20 @@ public class HttpRequest implements Closeable{
     private HttpBody body;
     private MultipartFormData multipart;
     private String wholeRequest; // the body is not included (need to be set by others)
+
+    public void setSocket(IOContainer socket){
+        this.socket = socket;
+    }
+    
+    /**
+     * Use this carefully. Do not break the application.
+     * <p>
+     * IOContainer contains only IO objects to prevent 
+     * devs from closing the underlying socket.
+     */
+    public IOContainer getSocket(){
+        return socket;
+    }
 
     /**
      * The start line is the first line of the request (including method, 
@@ -118,6 +135,9 @@ public class HttpRequest implements Closeable{
     
     public String toHttpString(){
         return toHttpString("HTTP/1.1", this);
+    }
+    public String toHttp2String(){
+        return toHttpString("HTTP/2", this);
     }
 
     /**

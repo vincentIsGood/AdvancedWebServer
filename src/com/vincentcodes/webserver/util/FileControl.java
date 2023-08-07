@@ -38,6 +38,8 @@ public class FileControl {
     /**
      * Will not alter response. However, save only works on PUT where 
      * file data is put directly into the body to the request. 
+     * <p>
+     * File is put in the directory specified by "-d" or server directory ("./").
      */
     public static boolean save(HttpRequest req, WebServer.Configuration config){
         return save(req, config.getHomeDirectory());

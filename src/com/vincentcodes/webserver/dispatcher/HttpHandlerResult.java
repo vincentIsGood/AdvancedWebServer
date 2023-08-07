@@ -3,6 +3,8 @@ package com.vincentcodes.webserver.dispatcher;
 import com.vincentcodes.webserver.dispatcher.operation.impl.HttpInvocationStrategy;
 
 /**
+ * You can return this object in an HTTP handler method.
+ * 
  * @see HttpInvocationStrategy#handleResponseBody
  */
 public class HttpHandlerResult {
