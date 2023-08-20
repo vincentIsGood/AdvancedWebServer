@@ -1,5 +1,8 @@
 package com.vincentcodes.webserver.http2;
 
+import java.io.IOException;
+import java.io.OutputStream;
+
 import com.vincentcodes.webserver.http2.hpack.HpackEncoder;
 
 public interface Http2FrameType {
@@ -29,4 +32,6 @@ public interface Http2FrameType {
     public int length();
     
     public byte[] toBytes();
+
+    public void streamBytesTo(OutputStream stream) throws IOException;
 }

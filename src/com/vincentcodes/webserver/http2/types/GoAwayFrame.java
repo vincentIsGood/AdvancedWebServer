@@ -3,6 +3,7 @@ package com.vincentcodes.webserver.http2.types;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.UncheckedIOException;
 
 import com.vincentcodes.webserver.helper.InputStreamHelper;
@@ -40,6 +41,13 @@ public class GoAwayFrame implements Http2FrameType {
             // ignores Additional Debug Data
         }catch(IOException e){}
         return os.toByteArray();
+    }
+
+    @Override
+    public void streamBytesTo(OutputStream stream) throws IOException{
+        stream.write(ByteUtils.intToByteArray(lastStreamId));
+        stream.write(ByteUtils.intToByteArray((int)errorCode));
+        // ignores Additional Debug Data
     }
 
     /**

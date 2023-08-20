@@ -3,6 +3,7 @@ package com.vincentcodes.webserver.http2.types;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.util.List;
 
@@ -94,6 +95,27 @@ public class HeadersFrame implements Http2FrameType {
             }
         }catch(IOException e){}
         return os.toByteArray();
+    }
+
+    @Override
+    public void streamBytesTo(OutputStream stream) throws IOException{
+        byte paddingLength = (byte)(Math.random()*15);
+        boolean padded = false;
+        if(parent != null){
+            if((parent.flags & PADDED) != 0){
+                stream.write(paddingLength);
+                padded = true;
+            }
+            if((parent.flags & PRIORITY) != 0){
+                // error may occur if the value gets too large
+                stream.write(ByteUtils.intToByteArray((priorityBit << 31) & streamDependency));
+                stream.write((byte)priorityWeight);
+            }
+        }
+        stream.write(encoder.encode(headers, true));
+        if(padded){
+            stream.write(new byte[paddingLength]);
+        }
     }
     
     public static Http2FrameType parse(Http2Frame frame, InputStream is, HpackDecoder hpackDecoder) throws UncheckedIOException{

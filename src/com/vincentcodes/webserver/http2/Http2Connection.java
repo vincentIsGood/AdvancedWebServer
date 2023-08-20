@@ -48,6 +48,8 @@ public class Http2Connection {
     private Http2RequestParser http2Parser;
     private Http2FrameGenerator frameGenerator;
 
+    private ExecutorService executorService;
+
     private OutputStream os;
     private InputStream is;
 
@@ -150,7 +152,8 @@ public class Http2Connection {
         if(WebServer.lowLevelDebugMode && !(frame.payload instanceof WindowUpdateFrame))
             WebServer.logger.debug("Send: " + frame.toString());
         
-        os.write(frame.toBytes());
+        frame.streamBytesTo(os);
+        // os.write(frame.toBytes());
     }
 
     /**
@@ -165,7 +168,7 @@ public class Http2Connection {
         streamStore.get(0).send(frameGenerator.settingsFrame(0));
         initConnectionChecker();
 
-        ExecutorService executorService = Executors.newFixedThreadPool(WebServer.HTTP2_HANDLER_THREADS);
+        executorService = Executors.newFixedThreadPool(WebServer.HTTP2_HANDLER_THREADS);
         while(isConnected()){
             Http2Frame requestFrame = http2Parser.parse(is);
             Http2Stream stream = findCorrespondingStream(requestFrame);

@@ -2,6 +2,7 @@ package com.vincentcodes.webserver.http2.types;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.UncheckedIOException;
 
 import com.vincentcodes.webserver.http2.Http2Frame;
@@ -32,6 +33,11 @@ public class PingFrame implements Http2FrameType {
     @Override
     public byte[] toBytes(){
         return new byte[8];
+    }
+
+    @Override
+    public void streamBytesTo(OutputStream stream) throws IOException {
+        stream.write(new byte[8]);
     }
 
     public static Http2FrameType parse(Http2Frame frame, InputStream is, HpackDecoder hpackDecoder) throws UncheckedIOException{

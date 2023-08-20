@@ -8,6 +8,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 
+import com.vincentcodes.webserver.WebServer;
 import com.vincentcodes.webserver.component.body.HttpBodyStream;
 import com.vincentcodes.webserver.component.header.EntityInfo;
 import com.vincentcodes.webserver.component.header.HttpHeaders;
@@ -17,6 +18,7 @@ import com.vincentcodes.webserver.component.request.MultipartFormData;
 import com.vincentcodes.webserver.component.request.RequestParser;
 import com.vincentcodes.webserver.component.response.ResponseBuilder;
 import com.vincentcodes.webserver.helper.TextBinaryInputStream;
+import com.vincentcodes.webserver.http2.constants.ErrorCodes;
 import com.vincentcodes.webserver.http2.constants.FrameTypes;
 import com.vincentcodes.webserver.http2.errors.StreamError;
 import com.vincentcodes.webserver.http2.types.ContinuationFrame;
@@ -149,17 +151,33 @@ public class Http2RequestConverter {
     public List<Http2Frame> fromResponse(ResponseBuilder response, int maxDataFrameAmount){
         List<Http2Frame> frames = new ArrayList<>();
         if(response.getHeaders().getEntityInfo().getLength() > 0){
-            frames.add(frameGenerator.responseHeadersFrame(response.getResponseCode(), response.getHeaders(), -1, true, false));
             // Make sure we send at least 10000 bytes to keep up with the streaming service.
             int dataSize = config.getMaxFrameSize()/2 < 10000? config.getMaxFrameSize() : config.getMaxFrameSize()/2;
             boolean endOfStream = false;
             int dataFrameCount = 0;
+
+            if(WebServer.ENFORCE_MAX_PARTIAL_ON_HTTP2 && response.getResponseCode() == 206){
+                maxDataFrameAmount = (int)Math.ceil(WebServer.MAX_PARTIAL_DATA_LENGTH / dataSize);
+                if(WebServer.ENFORCE_MAX_PARTIAL_ON_HTTP2 && 
+                    response.getHeaders().getEntityInfo().getLength() > WebServer.MAX_PARTIAL_DATA_LENGTH){
+                    WebServer.logger.debug("Requested size is larger than server limit");
+                    response.setResponseCode(413);
+                }
+            }
+
+            frames.add(frameGenerator.responseHeadersFrame(response.getResponseCode(), response.getHeaders(), -1, true, false));
+
             while(!endOfStream && (dataFrameCount < maxDataFrameAmount || maxDataFrameAmount == -1)){
                 // use getBytes(buf) to not load the whole file into memory
                 byte[] data = response.getBody().getBytes(dataSize);
                 frames.add(frameGenerator.dataFrame(data, -1, endOfStream = data.length != dataSize));
                 dataFrameCount++;
             }
+
+            if(dataFrameCount >= maxDataFrameAmount){
+                frames.add(frameGenerator.rstStreamFrame(-1, ErrorCodes.CANCEL));
+            }
+
             // Working code... (don't delete please)
             // byte[] resBody = response.getBody().getBytes();
             // int nextIndex = 0;
@@ -181,15 +199,25 @@ public class Http2RequestConverter {
      */
     public void streamResponseToStream(ResponseBuilder response, int maxDataFrameAmount, Http2Stream stream) throws InvocationTargetException, IOException{
         if(response.getHeaders().getEntityInfo().getLength() > 0){
-            stream.send(frameGenerator.responseHeadersFrame(response.getResponseCode(), response.getHeaders(), -1, true, false));
             // Make sure we send at least 10000 bytes to keep up with the streaming service.
             int dataSize = config.getMaxFrameSize()/2 < 10000? config.getMaxFrameSize() : config.getMaxFrameSize()/2;
             boolean endOfStream = false;
             int dataFrameCount = 0;
+
+            if(WebServer.ENFORCE_MAX_PARTIAL_ON_HTTP2 && response.getResponseCode() == 206){
+                maxDataFrameAmount = (int)Math.ceil(WebServer.MAX_PARTIAL_DATA_LENGTH / dataSize);
+            }
+
+            stream.send(frameGenerator.responseHeadersFrame(response.getResponseCode(), response.getHeaders(), -1, true, false));
+
             while(!endOfStream && (dataFrameCount < maxDataFrameAmount || maxDataFrameAmount == -1)){
                 byte[] data = response.getBody().getBytes(dataSize);
                 stream.send(frameGenerator.dataFrame(data, -1, endOfStream = data.length != dataSize));
                 dataFrameCount++;
+            }
+
+            if(dataFrameCount >= maxDataFrameAmount){
+                stream.send(frameGenerator.rstStreamFrame(-1, ErrorCodes.CANCEL));
             }
         }else if(response.getHeaders().size() > 0){
             stream.send(frameGenerator.responseHeadersFrame(response.getResponseCode(), response.getHeaders(), -1, true, true));

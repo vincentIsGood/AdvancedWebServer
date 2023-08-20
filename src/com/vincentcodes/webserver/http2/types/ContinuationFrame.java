@@ -2,6 +2,7 @@ package com.vincentcodes.webserver.http2.types;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.util.List;
 
@@ -44,6 +45,11 @@ public class ContinuationFrame implements Http2FrameType {
     @Override
     public byte[] toBytes(){
         return encoder.encode(headers, false);
+    }
+
+    @Override
+    public void streamBytesTo(OutputStream stream) throws IOException{
+        stream.write(encoder.encode(headers, false));
     }
     
     public static Http2FrameType parse(Http2Frame frame, InputStream is, HpackDecoder hpackDecoder) throws UncheckedIOException{
