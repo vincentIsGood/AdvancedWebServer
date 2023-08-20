@@ -141,8 +141,13 @@ public class Http2Stream {
      * {@link StreamState#CLOSED} state.
      */
     public void send(Http2Frame frame) throws IOException, InvocationTargetException{
+        if(state == StreamState.CLOSED && WebServer.THROW_ERROR_WHEN_SEND_ON_CLOSED){
+            throw new IOException("Http2Stream is closed: " + toString());
+        }
+        
         frame.streamIdentifier = streamId;
         sendUnsafe(frame);
+        // framesToBeSent.add(frame);
     }
     public void send(List<Http2Frame> frames) throws IOException, InvocationTargetException{
         for(Http2Frame frame : frames){
@@ -155,7 +160,12 @@ public class Http2Stream {
      */
     public void sendQueuedUpFrames() throws InvocationTargetException, IOException{
         while(framesToBeSent.size() > 0 && currentServerWindow > 0){
-            sendUnsafe(framesToBeSent.poll());
+            try {
+                sendUnsafe(framesToBeSent.poll());
+            } catch (InvocationTargetException | IOException e) {
+                e.printStackTrace();
+                throw new RuntimeException(e);
+            }
         }
     }
     /**
