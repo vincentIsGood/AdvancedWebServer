@@ -35,6 +35,7 @@ public final class ResponseCodes {
             case 409: return "Conflict";
             case 410: return "Gone";
             case 411: return "Length Required";
+            case 413: return "Content Too Large";
             case 415: return "Unsupported Media Type";
             case 416: return "Range Not Satisfiable";
             case 426: return "Upgrade Required";

@@ -152,7 +152,8 @@ public class Http2Connection {
         if(WebServer.lowLevelDebugMode && !(frame.payload instanceof WindowUpdateFrame))
             WebServer.logger.debug("Send: " + frame.toString());
         
-        os.write(frame.toBytes());
+        frame.sendBytesTo(os);
+        // os.write(frame.toBytes());
     }
 
     /**

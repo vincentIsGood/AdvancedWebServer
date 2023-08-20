@@ -2,6 +2,7 @@ package com.vincentcodes.webserver.http2;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 
 import com.vincentcodes.webserver.util.ByteUtils;
 
@@ -45,6 +46,16 @@ public class Http2Frame {
                 stream.write(payload.toBytes());
         }catch(IOException e){}
         return stream.toByteArray();
+    }
+
+    public void sendBytesTo(OutputStream stream) throws IOException{
+        byte[] length = ByteUtils.intToByteArray(payloadLength);
+        stream.write(new byte[]{length[1], length[2], length[3]});
+        stream.write(type);
+        stream.write(flags);
+        stream.write(ByteUtils.intToByteArray(streamIdentifier));
+        if(payload != null)
+            stream.write(payload.toBytes());
     }
 
     // This method hinders performance (you may comment out all toString methods)
