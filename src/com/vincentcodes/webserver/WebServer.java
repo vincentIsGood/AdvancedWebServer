@@ -99,7 +99,7 @@ public class WebServer {
      * 2 MiB (used for streaming files, including the starting byte)
      */
     public static final int MAX_PARTIAL_DATA_LENGTH = 1024 * 1024 * 2 -1;
-    public static final boolean ENFORCE_MAX_PARTIAL_ON_HTTP2 = true;
+    public static final boolean ENFORCE_MAX_PARTIAL_ON_HTTP2 = false;
     // public static final int MAX_PARTIAL_DATA_LENGTH = 1024 * 1024 * 512 -1;
 
     public static final Logger logger = new Logger("logs/output", false, true){
