@@ -3,6 +3,7 @@ package com.vincentcodes.webserver.http2.types;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.UncheckedIOException;
 
 import com.vincentcodes.webserver.http2.Http2Frame;
@@ -62,6 +63,22 @@ public class DataFrame implements Http2FrameType{
             }
         }catch(IOException e){}
         return os.toByteArray();
+    }
+
+    @Override
+    public void streamBytesTo(OutputStream stream) throws IOException{
+        byte paddingLength = (byte)(Math.random()*15);
+        boolean padded = false;
+        if(parent != null){
+            if((parent.flags & PADDED) != 0){
+                stream.write(paddingLength);
+                padded = true;
+            }
+        }
+        stream.write(data);
+        if(padded){
+            stream.write(new byte[paddingLength]);
+        }
     }
 
     /**

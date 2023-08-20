@@ -2,6 +2,7 @@ package com.vincentcodes.webserver.http2.types;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.UncheckedIOException;
 
 import com.vincentcodes.webserver.http2.Http2Frame;
@@ -35,6 +36,12 @@ public class PriorityFrame implements Http2FrameType {
     public byte[] toBytes(){
         byte[] intSized = ByteUtils.intToByteArray((exclusiveStreamBit << 31) | streamDependency);
         return new byte[]{intSized[0], intSized[1], intSized[2], intSized[3], (byte)priorityWeight};
+    }
+
+    @Override
+    public void streamBytesTo(OutputStream stream) throws IOException {
+        byte[] intSized = ByteUtils.intToByteArray((exclusiveStreamBit << 31) | streamDependency);
+        stream.write(new byte[]{intSized[0], intSized[1], intSized[2], intSized[3], (byte)priorityWeight});
     }
 
     public static Http2FrameType parse(Http2Frame frame, InputStream is, HpackDecoder hpackDecoder) throws UncheckedIOException{

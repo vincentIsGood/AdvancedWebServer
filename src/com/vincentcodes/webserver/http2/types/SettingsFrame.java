@@ -3,6 +3,7 @@ package com.vincentcodes.webserver.http2.types;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -74,6 +75,14 @@ public class SettingsFrame implements Http2FrameType {
             }
         }catch(IOException e){}
         return os.toByteArray();
+    }
+
+    @Override
+    public void streamBytesTo(OutputStream stream) throws IOException {
+        for(SettingParameter param : params){
+            stream.write(ByteUtils.shortToByteArray((short)param.getIdentifier()));
+            stream.write(ByteUtils.intToByteArray((int)param.getValue()));
+        }
     }
     
     public static Http2FrameType parse(Http2Frame frame, InputStream is, HpackDecoder hpackDecoder) throws UncheckedIOException{
