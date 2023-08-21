@@ -45,7 +45,7 @@ public class Http2Connection {
     private Http2RequestParser http2Parser;
     private Http2FrameGenerator frameGenerator;
 
-    private ExecutorService executorService;
+    private ExecutorService executorService = Executors.newFixedThreadPool(WebServer.HTTP2_HANDLER_THREADS);
 
     private OutputStream os;
     private InputStream is;
@@ -93,29 +93,35 @@ public class Http2Connection {
 
             Optional<HttpRequest> optRequest = converter.toRequest();
             if(optRequest.isPresent()){
-                try(HttpRequest req = optRequest.get()){
-                    req.setSocket(this.ioContainer);
+                // TODO: new thread here (check for problems)
+                executorService.submit(()->{
+                    try(HttpRequest req = optRequest.get()){
+                        req.setSocket(this.ioContainer);
 
-                    WebServer.logger.debug(req.toHttp2String());
-                    ResponseBuilder response = handleHttpRequest(req);
-                    
-                    if(response.getHeaders().getHeader("X-Vws-Raw-Tunnel") != null){
-                        try {
-                            ServerThreadUtils.socketTunnelInitialization(req, response, (remoteServerRes, os)->{
-                                try {
-                                    converter.streamResponseToStream(remoteServerRes, -1, stream);
-                                } catch (InvocationTargetException | IOException e) {
-                                    throw new RuntimeException(e);
-                                }
-                            });
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
+                        WebServer.logger.debug(req.toHttp2String());
+                        ResponseBuilder response = handleHttpRequest(req);
+                        
+                        if(response.getHeaders().getHeader("X-Vws-Raw-Tunnel") != null){
+                            try {
+                                ServerThreadUtils.socketTunnelInitialization(req, response, (remoteServerRes, os)->{
+                                    try {
+                                        converter.streamResponseToStream(remoteServerRes, -1, stream);
+                                    } catch (InvocationTargetException | IOException e) {
+                                        throw new RuntimeException(e);
+                                    }
+                                });
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                            return;
                         }
-                        return;
+                        
+                        converter.streamResponseToStream(response, -1, stream);
+                    }catch(IOException | InvocationTargetException e){
+                        e.printStackTrace();
+                        throw new RuntimeException(e);
                     }
-                    
-                    converter.streamResponseToStream(response, -1, stream);
-                }
+                });
             }
             return;
         }
@@ -167,37 +173,11 @@ public class Http2Connection {
         streamStore.get(0).send(frameGenerator.settingsFrame(0));
         initConnectionChecker();
 
-        // TODO: check for any other race condition problems
-        executorService = Executors.newFixedThreadPool(WebServer.HTTP2_HANDLER_THREADS);
         while(isConnected()){
             Http2Frame requestFrame = http2Parser.parse(is);
             Http2Stream stream = findCorrespondingStream(requestFrame);
             stream.queueUpClientFrames(requestFrame);
-            
-            // if(!busyStreams.contains(stream)){
-            //     busyStreams.add(stream);
-            //     executorService.submit(() -> {
-            //         try {
-            //             stream.processQueuedUpFrames();
-            //             busyStreams.remove(stream);
-            //         } catch (InvocationTargetException | IOException e) {
-            //             if(WebServer.lowLevelDebugMode)
-            //                 e.printStackTrace();
-            //         }
-            //         return;
-            //     });
-            // }
-
-            // TODO: not tested when client uploads to server
-            executorService.submit(() -> {
-                try {
-                    stream.processQueuedUpFrames();
-                } catch (InvocationTargetException | IOException e) {
-                    if(WebServer.lowLevelDebugMode)
-                        e.printStackTrace();
-                }
-                return;
-            });
+            stream.processQueuedUpFrames();
         }
     }
 

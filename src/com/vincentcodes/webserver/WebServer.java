@@ -88,7 +88,7 @@ public class WebServer {
     public static final int WEBSOCKET_PING_INTERVAL_MILSEC = 30*(60*1000); // 30mins
 
     public static final int MAX_HTTP2_STREAMS_INDEX = 65536-1; // default: 2**31-1
-    public static final int HTTP2_HANDLER_THREADS = 16;
+    public static final int HTTP2_HANDLER_THREADS = 8;
 
     public static final boolean THROW_ERROR_WHEN_SEND_ON_CLOSED = true;
 
