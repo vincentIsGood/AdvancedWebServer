@@ -5,9 +5,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.net.Socket;
-import java.util.HashSet;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -39,7 +37,6 @@ public class Http2Connection {
     private IOContainer ioContainer;
     private UpgradableSocket connection;
     private StreamStore streamStore;
-    private Set<Http2Stream> busyStreams;
 
     private HttpRequestValidator requestValidator;
     private HttpRequestDispatcher requestDispatcher;
@@ -60,7 +57,6 @@ public class Http2Connection {
         this.ioContainer = ioContainer;
         this.connection = ioContainer.getSocket();
         this.streamStore = new StreamStore();
-        busyStreams = new HashSet<>();
         this.requestValidator = requestValidator;
         this.requestDispatcher = requestDispatcher;
     }

@@ -102,7 +102,7 @@ public class HpackEncoderTest {
         frame.flags = SettingsFrame.ACK;
         frame.streamIdentifier = 0;
         frame.payloadLength = 0;
-        assertEquals(Arrays.toString(buf), Arrays.toString(frame.toBytes()));
+        assertEquals(Arrays.toString(buf), Arrays.toString(Http2Frame.toBytes(frame)));
     }
 
     @Test
@@ -125,7 +125,7 @@ public class HpackEncoderTest {
         frame.payloadLength = settings.toBytes().length;
         frame.payload = settings;
 
-        assertEquals(Arrays.toString(buf), Arrays.toString(frame.toBytes()));
+        assertEquals(Arrays.toString(buf), Arrays.toString(Http2Frame.toBytes(frame)));
     }
 
     @Test
@@ -134,7 +134,7 @@ public class HpackEncoderTest {
         Http2Configuration conf = new Http2Configuration();
         Http2FrameGenerator frameGenerator = new Http2FrameGenerator(new HpackEncoder(), conf);
         Http2RequestParser parser = new Http2RequestParser(new HpackDecoder(), conf);
-        byte[] buf = frameGenerator.responseHeadersFrame(404, 2, true, true).toBytes();
+        byte[] buf = Http2Frame.toBytes(frameGenerator.responseHeadersFrame(404, 2, true, true));
         System.out.println(parser.parse(new ByteArrayInputStream(buf)));
     }
 }
