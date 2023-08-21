@@ -67,7 +67,6 @@ public class Http2Connection {
     public void setup(){
         is = ioContainer.getInputStream();
         os = ioContainer.getOutputStream();
-        WebServer.logger.warn(os.getClass() + " ");
         config = new Http2Configuration();
         
         // "the request and response dynamic tables are separate."
