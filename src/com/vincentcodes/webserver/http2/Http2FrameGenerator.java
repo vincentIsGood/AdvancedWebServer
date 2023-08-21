@@ -143,6 +143,7 @@ public class Http2FrameGenerator {
         return frame;
     }
 
+    // optimized
     public Http2Frame dataFrame(byte[] data, int streamId, boolean endStream){
         Http2Frame frame = new Http2Frame();
         frame.type = FrameTypes.DATA.value;
@@ -152,7 +153,8 @@ public class Http2FrameGenerator {
         DataFrame dataFrame = new DataFrame();
         dataFrame.data = data;
 
-        frame.payloadLength = dataFrame.length();
+        // frame.payloadLength = dataFrame.length();
+        frame.payloadLength = data.length; // no padding
         frame.payload = dataFrame;
 
         return frame;

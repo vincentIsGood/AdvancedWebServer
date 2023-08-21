@@ -46,7 +46,6 @@ public class PriorityFrame implements Http2FrameType {
 
     public static Http2FrameType parse(Http2Frame frame, InputStream is, HpackDecoder hpackDecoder) throws UncheckedIOException{
         if(frame.payloadLength != 5){
-            frame.invalid();
             return null;
         }
         try{

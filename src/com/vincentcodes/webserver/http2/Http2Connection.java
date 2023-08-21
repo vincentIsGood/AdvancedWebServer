@@ -5,9 +5,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.net.Socket;
-import java.util.HashSet;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -39,7 +37,6 @@ public class Http2Connection {
     private IOContainer ioContainer;
     private UpgradableSocket connection;
     private StreamStore streamStore;
-    private Set<Http2Stream> busyStreams;
 
     private HttpRequestValidator requestValidator;
     private HttpRequestDispatcher requestDispatcher;
@@ -53,13 +50,13 @@ public class Http2Connection {
     private OutputStream os;
     private InputStream is;
 
+    private Object sendLock = new Object();
     private boolean pingSent = false;
 
     public Http2Connection(IOContainer ioContainer, HttpRequestValidator requestValidator, HttpRequestDispatcher requestDispatcher){
         this.ioContainer = ioContainer;
         this.connection = ioContainer.getSocket();
         this.streamStore = new StreamStore();
-        busyStreams = new HashSet<>();
         this.requestValidator = requestValidator;
         this.requestDispatcher = requestDispatcher;
     }
@@ -87,7 +84,7 @@ public class Http2Connection {
      */
     private void universalInputHandler(Http2Stream stream, Http2Frame frame) throws IOException, InvocationTargetException{
         if(WebServer.lowLevelDebugMode && !(frame.payload instanceof WindowUpdateFrame))
-            WebServer.logger.debug("Recv: " + frame.toString());
+            WebServer.logger.debug("Recv: " + Http2Frame.getString(frame));
 
         Http2RequestConverter converter = stream.getConverter();
         
@@ -150,9 +147,11 @@ public class Http2Connection {
      */
     private void universalOutputHandler(Http2Stream stream, Http2Frame frame) throws IOException, InvocationTargetException{
         if(WebServer.lowLevelDebugMode && !(frame.payload instanceof WindowUpdateFrame))
-            WebServer.logger.debug("Send: " + frame.toString());
+            WebServer.logger.debug("Send: " + Http2Frame.getString(frame));
         
-        frame.streamBytesTo(os);
+        synchronized(sendLock){
+            Http2Frame.streamBytesTo(frame, os);
+        }
         // os.write(frame.toBytes());
     }
 
@@ -168,25 +167,37 @@ public class Http2Connection {
         streamStore.get(0).send(frameGenerator.settingsFrame(0));
         initConnectionChecker();
 
+        // TODO: check for any other race condition problems
         executorService = Executors.newFixedThreadPool(WebServer.HTTP2_HANDLER_THREADS);
         while(isConnected()){
             Http2Frame requestFrame = http2Parser.parse(is);
             Http2Stream stream = findCorrespondingStream(requestFrame);
             stream.queueUpClientFrames(requestFrame);
             
-            // TODO: Bug fixed regarding race condition, but still need more testing
-            if(!busyStreams.contains(stream)){
-                busyStreams.add(stream);
-                executorService.submit(() -> {
-                    try {
-                        stream.processQueuedUpFrames();
-                        busyStreams.remove(stream);
-                    } catch (InvocationTargetException | IOException e) {
-                        if(WebServer.lowLevelDebugMode)
-                            e.printStackTrace();
-                    }
-                });
-            }
+            // if(!busyStreams.contains(stream)){
+            //     busyStreams.add(stream);
+            //     executorService.submit(() -> {
+            //         try {
+            //             stream.processQueuedUpFrames();
+            //             busyStreams.remove(stream);
+            //         } catch (InvocationTargetException | IOException e) {
+            //             if(WebServer.lowLevelDebugMode)
+            //                 e.printStackTrace();
+            //         }
+            //         return;
+            //     });
+            // }
+
+            // TODO: not tested when client uploads to server
+            executorService.submit(() -> {
+                try {
+                    stream.processQueuedUpFrames();
+                } catch (InvocationTargetException | IOException e) {
+                    if(WebServer.lowLevelDebugMode)
+                        e.printStackTrace();
+                }
+                return;
+            });
         }
     }
 
