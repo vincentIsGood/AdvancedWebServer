@@ -24,46 +24,33 @@ public class Http2Frame {
     public int streamIdentifier; // leftmost bit is the reserved bit (R) it will be 0x0
     public Http2FrameType payload;
 
-    private boolean valid = true;
-
-    public void invalid(){
-        valid = false;
-    }
-
-    public boolean isValid(){
-        return valid;
-    }
-
-    public byte[] toBytes(){
+    public static byte[] toBytes(Http2Frame frame){
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         try{
-            byte[] length = ByteUtils.intToByteArray(payloadLength);
+            byte[] length = ByteUtils.intToByteArray(frame.payloadLength);
             stream.write(new byte[]{length[1], length[2], length[3]});
-            stream.write(type);
-            stream.write(flags);
-            stream.write(ByteUtils.intToByteArray(streamIdentifier));
-            if(payload != null)
-                stream.write(payload.toBytes());
+            stream.write(frame.type);
+            stream.write(frame.flags);
+            stream.write(ByteUtils.intToByteArray(frame.streamIdentifier));
+            if(frame.payload != null)
+                stream.write(frame.payload.toBytes());
         }catch(IOException e){}
         return stream.toByteArray();
     }
 
-    public void streamBytesTo(OutputStream stream) throws IOException{
-        // lock the stream
-        synchronized(stream){
-            byte[] length = ByteUtils.intToByteArray(payloadLength);
-            stream.write(new byte[]{length[1], length[2], length[3]});
-            stream.write(type);
-            stream.write(flags);
-            stream.write(ByteUtils.intToByteArray(streamIdentifier));
-            if(payload != null)
-                payload.streamBytesTo(stream);
-            stream.flush();
-        }
+    public static void streamBytesTo(Http2Frame frame, OutputStream stream) throws IOException{
+        byte[] length = ByteUtils.intToByteArray(frame.payloadLength);
+        stream.write(new byte[]{length[1], length[2], length[3]});
+        stream.write(frame.type);
+        stream.write(frame.flags);
+        stream.write(ByteUtils.intToByteArray(frame.streamIdentifier));
+        if(frame.payload != null)
+            frame.payload.streamBytesTo(stream);
     }
 
     // This method hinders performance (you may comment out all toString methods)
-    public String toString(){
-        return String.format("{Http2Frame length: %d, type: %d, flags: %d, stream: %d, payload: %s}", payloadLength, type, flags, streamIdentifier, payload);
+    public static String getString(Http2Frame frame){
+        return String.format("{Http2Frame length: %d, type: %d, flags: %d, stream: %d, payload: %s}", frame.payloadLength, frame.type, frame.flags, frame.streamIdentifier, frame.payload);
     }
+    
 }

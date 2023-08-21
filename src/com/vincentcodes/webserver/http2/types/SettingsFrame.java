@@ -87,7 +87,6 @@ public class SettingsFrame implements Http2FrameType {
     
     public static Http2FrameType parse(Http2Frame frame, InputStream is, HpackDecoder hpackDecoder) throws UncheckedIOException{
         if(frame.payloadLength % 6 != 0){
-            frame.invalid();
             return null;
         }
         try{

@@ -5,6 +5,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import com.vincentcodes.webserver.WebServer;
 import com.vincentcodes.webserver.http2.constants.StreamState;
@@ -47,6 +49,8 @@ public class Http2Stream {
     private StreamIOHandler outputHandler;
     private Http2FrameGenerator frameGenerator;
     private Http2RequestConverter converter;
+
+    private ExecutorService executorService = Executors.newFixedThreadPool(1);
     
     /**
      * By using this constructor you are required to manually setup the stream. Otherwise,
@@ -141,10 +145,6 @@ public class Http2Stream {
      * {@link StreamState#CLOSED} state.
      */
     public void send(Http2Frame frame) throws IOException, InvocationTargetException{
-        if(state == StreamState.CLOSED && WebServer.THROW_ERROR_WHEN_SEND_ON_CLOSED){
-            throw new IOException("Http2Stream is closed: " + toString());
-        }
-        
         frame.streamIdentifier = streamId;
         sendUnsafe(frame);
         // framesToBeSent.add(frame);
@@ -159,14 +159,16 @@ public class Http2Stream {
      * Currently has NO effect
      */
     public void sendQueuedUpFrames() throws InvocationTargetException, IOException{
-        while(framesToBeSent.size() > 0 && currentServerWindow > 0){
-            try {
-                sendUnsafe(framesToBeSent.poll());
-            } catch (InvocationTargetException | IOException e) {
-                e.printStackTrace();
-                throw new RuntimeException(e);
+        executorService.submit(()->{
+            while(framesToBeSent.size() > 0 && currentServerWindow > 0){
+                try {
+                    sendUnsafe(framesToBeSent.poll());
+                } catch (InvocationTargetException | IOException e) {
+                    e.printStackTrace();
+                    throw new RuntimeException(e);
+                }
             }
-        }
+        });
     }
     /**
      * [Removed] Will queue up frames if server's window is not enough.

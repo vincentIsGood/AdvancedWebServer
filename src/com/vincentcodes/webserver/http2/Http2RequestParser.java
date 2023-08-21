@@ -67,7 +67,7 @@ public class Http2RequestParser {
                 // It is easier to parse the frame.
                 frame.payload = frameType.parseFunc.apply(frame, new ByteArrayInputStream(payloadBytes), hpackDecoder);
             }else if(frame.payloadLength > config.getMaxFrameSize()){
-                frame.invalid();
+                // frame.invalid();
                 // handle errors... (for more, please read the docs)
             }
         }catch(IOException | UncheckedIOException e){

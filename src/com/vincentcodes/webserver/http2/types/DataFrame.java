@@ -21,13 +21,9 @@ public class DataFrame implements Http2FrameType{
     
     public byte[] data = null;
 
-    private Http2Frame parent;
+    public Http2Frame parent;
 
     public DataFrame(){}
-
-    public DataFrame(Http2Frame parent){
-        this.parent = parent;
-    }
 
     @Override
     public void attach(Http2Frame parent){
@@ -47,17 +43,20 @@ public class DataFrame implements Http2FrameType{
      */
     @Override
     public byte[] toBytes(){
+        return toBytes(this);
+    }
+    public static byte[] toBytes(DataFrame frame){
         ByteArrayOutputStream os = new ByteArrayOutputStream(); 
         byte paddingLength = (byte)(Math.random()*15);
         boolean padded = false;
         try{
-            if(parent != null){
-                if((parent.flags & PADDED) != 0){
+            if(frame.parent != null){
+                if((frame.parent.flags & PADDED) != 0){
                     os.write(paddingLength);
                     padded = true;
                 }
             }
-            os.write(data);
+            os.write(frame.data);
             if(padded){
                 os.write(new byte[paddingLength]);
             }
@@ -67,15 +66,18 @@ public class DataFrame implements Http2FrameType{
 
     @Override
     public void streamBytesTo(OutputStream stream) throws IOException{
+        streamBytesTo(this, stream);
+    }
+    public static void streamBytesTo(DataFrame frame, OutputStream stream) throws IOException{
         byte paddingLength = (byte)(Math.random()*15);
         boolean padded = false;
-        if(parent != null){
-            if((parent.flags & PADDED) != 0){
+        if(frame.parent != null){
+            if((frame.parent.flags & PADDED) != 0){
                 stream.write(paddingLength);
                 padded = true;
             }
         }
-        stream.write(data);
+        stream.write(frame.data);
         if(padded){
             stream.write(new byte[paddingLength]);
         }

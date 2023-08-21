@@ -8,7 +8,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 
-import com.vincentcodes.webserver.WebServer;
 import com.vincentcodes.webserver.component.body.HttpBodyStream;
 import com.vincentcodes.webserver.component.header.EntityInfo;
 import com.vincentcodes.webserver.component.header.HttpHeaders;
@@ -18,7 +17,6 @@ import com.vincentcodes.webserver.component.request.MultipartFormData;
 import com.vincentcodes.webserver.component.request.RequestParser;
 import com.vincentcodes.webserver.component.response.ResponseBuilder;
 import com.vincentcodes.webserver.helper.TextBinaryInputStream;
-import com.vincentcodes.webserver.http2.constants.ErrorCodes;
 import com.vincentcodes.webserver.http2.constants.FrameTypes;
 import com.vincentcodes.webserver.http2.errors.StreamError;
 import com.vincentcodes.webserver.http2.types.ContinuationFrame;
@@ -144,7 +142,6 @@ public class Http2RequestConverter {
         return Optional.empty();
     }
 
-    // TODO: low performance issue here?
     /**
      * @param maxDataFrameAmount -1 to make it infinite
      */
@@ -156,14 +153,9 @@ public class Http2RequestConverter {
             boolean endOfStream = false;
             int dataFrameCount = 0;
 
-            if(WebServer.ENFORCE_MAX_PARTIAL_ON_HTTP2 && response.getResponseCode() == 206){
-                maxDataFrameAmount = (int)Math.ceil(WebServer.MAX_PARTIAL_DATA_LENGTH / dataSize);
-                if(WebServer.ENFORCE_MAX_PARTIAL_ON_HTTP2 && 
-                    response.getHeaders().getEntityInfo().getLength() > WebServer.MAX_PARTIAL_DATA_LENGTH){
-                    WebServer.logger.debug("Requested size is larger than server limit");
-                    response.setResponseCode(413);
-                }
-            }
+            // if(WebServer.ENFORCE_MAX_PARTIAL_ON_HTTP2 && response.getResponseCode() == 206){
+            //     maxDataFrameAmount = (int)Math.ceil(WebServer.MAX_PARTIAL_DATA_LENGTH / dataSize);
+            // }
 
             frames.add(frameGenerator.responseHeadersFrame(response.getResponseCode(), response.getHeaders(), -1, true, false));
 
@@ -174,9 +166,9 @@ public class Http2RequestConverter {
                 dataFrameCount++;
             }
 
-            if(dataFrameCount >= maxDataFrameAmount){
-                frames.add(frameGenerator.rstStreamFrame(-1, ErrorCodes.CANCEL));
-            }
+            // if(dataFrameCount >= maxDataFrameAmount){
+            //     frames.add(frameGenerator.rstStreamFrame(-1, ErrorCodes.CANCEL));
+            // }
 
             // Working code... (don't delete please)
             // byte[] resBody = response.getBody().getBytes();
@@ -204,9 +196,9 @@ public class Http2RequestConverter {
             boolean endOfStream = false;
             int dataFrameCount = 0;
 
-            if(WebServer.ENFORCE_MAX_PARTIAL_ON_HTTP2 && response.getResponseCode() == 206){
-                maxDataFrameAmount = (int)Math.ceil(WebServer.MAX_PARTIAL_DATA_LENGTH / dataSize);
-            }
+            // if(WebServer.ENFORCE_MAX_PARTIAL_ON_HTTP2 && response.getResponseCode() == 206){
+            //     maxDataFrameAmount = (int)Math.ceil(WebServer.MAX_PARTIAL_DATA_LENGTH / dataSize);
+            // }
 
             stream.send(frameGenerator.responseHeadersFrame(response.getResponseCode(), response.getHeaders(), -1, true, false));
 
@@ -216,9 +208,9 @@ public class Http2RequestConverter {
                 dataFrameCount++;
             }
 
-            if(dataFrameCount >= maxDataFrameAmount){
-                stream.send(frameGenerator.rstStreamFrame(-1, ErrorCodes.CANCEL));
-            }
+            // if(dataFrameCount >= maxDataFrameAmount){
+            //     stream.send(frameGenerator.rstStreamFrame(-1, ErrorCodes.CANCEL));
+            // }
         }else if(response.getHeaders().size() > 0){
             stream.send(frameGenerator.responseHeadersFrame(response.getResponseCode(), response.getHeaders(), -1, true, true));
         }else{
