@@ -49,13 +49,17 @@ public class Http2Frame {
     }
 
     public void streamBytesTo(OutputStream stream) throws IOException{
-        byte[] length = ByteUtils.intToByteArray(payloadLength);
-        stream.write(new byte[]{length[1], length[2], length[3]});
-        stream.write(type);
-        stream.write(flags);
-        stream.write(ByteUtils.intToByteArray(streamIdentifier));
-        if(payload != null)
-            payload.streamBytesTo(stream);
+        // lock the stream
+        synchronized(stream){
+            byte[] length = ByteUtils.intToByteArray(payloadLength);
+            stream.write(new byte[]{length[1], length[2], length[3]});
+            stream.write(type);
+            stream.write(flags);
+            stream.write(ByteUtils.intToByteArray(streamIdentifier));
+            if(payload != null)
+                payload.streamBytesTo(stream);
+            stream.flush();
+        }
     }
 
     // This method hinders performance (you may comment out all toString methods)
