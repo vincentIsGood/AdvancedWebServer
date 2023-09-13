@@ -190,6 +190,7 @@ public class Http2RequestConverter {
 
             stream.send(frameGenerator.responseHeadersFrame(response.getResponseCode(), response.getHeaders(), -1, true, false));
 
+            // TODO: further optimize new DataFrame to reduce latency
             while(!endOfStream && (dataFrameCount < maxDataFrameAmount || maxDataFrameAmount == -1)){
                 byte[] data = response.getBody().getBytes(dataSize);
                 stream.send(frameGenerator.dataFrame(data, -1, endOfStream = data.length != dataSize));
