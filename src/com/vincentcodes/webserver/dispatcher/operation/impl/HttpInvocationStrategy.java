@@ -123,15 +123,15 @@ public class HttpInvocationStrategy implements MethodInvocationStrategy {
         EntityInfo info = headers.getEntityInfo();
         RangeHeader range = info.getRange();
         if (range != null && range.isValid()) {
-            int startLoc = (int)range.getRangeStart();
-            int endLoc = (int)range.getRangeEnd();
+            long startLoc = range.getRangeStart();
+            long endLoc = range.getRangeEnd();
 
             if (range.hasRangeEnd()) {
                 return HttpResponses.usePartialContent(file, startLoc, endLoc);
             } else {
                 long totalSize = file.length();
-                int defaultLength = startLoc + WebServer.MAX_PARTIAL_DATA_LENGTH;
-                endLoc = defaultLength >= totalSize? (int)totalSize-1 : defaultLength;
+                long defaultLength = startLoc + WebServer.MAX_PARTIAL_DATA_LENGTH;
+                endLoc = defaultLength >= totalSize? totalSize-1 : defaultLength;
                 return HttpResponses.usePartialContent(file, startLoc, endLoc);
             }
         }else{

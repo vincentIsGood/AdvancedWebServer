@@ -33,7 +33,7 @@ public class ResponseParser {
                     headers.add(key, val);
                 }else{
                     EntityInfo entityInfo = headers.getEntityInfo();
-                    int length = entityInfo.getLength();
+                    long length = entityInfo.getLength();
 
                     if(entityInfo.getTransferEncoding().equals("chunked")){
                         int realLength = 0;
@@ -45,9 +45,11 @@ public class ResponseParser {
                             reader.readLine(); // skip line break
                         }
                     }else if(length > 0){
-                        byte[] content = new byte[length];
-                        reader.read(content);
-                        body.writeToBody(content);
+                        byte[] content = new byte[4096];
+                        int bytesRead;
+                        while((bytesRead = reader.read(content)) != -1){
+                            body.writeToBody(content, bytesRead);
+                        }
                     }
                     break;
                 }

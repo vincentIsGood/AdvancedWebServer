@@ -153,10 +153,6 @@ public class Http2RequestConverter {
             boolean endOfStream = false;
             int dataFrameCount = 0;
 
-            // if(WebServer.ENFORCE_MAX_PARTIAL_ON_HTTP2 && response.getResponseCode() == 206){
-            //     maxDataFrameAmount = (int)Math.ceil(WebServer.MAX_PARTIAL_DATA_LENGTH / dataSize);
-            // }
-
             frames.add(frameGenerator.responseHeadersFrame(response.getResponseCode(), response.getHeaders(), -1, true, false));
 
             while(!endOfStream && (dataFrameCount < maxDataFrameAmount || maxDataFrameAmount == -1)){
@@ -165,10 +161,6 @@ public class Http2RequestConverter {
                 frames.add(frameGenerator.dataFrame(data, -1, endOfStream = data.length != dataSize));
                 dataFrameCount++;
             }
-
-            // if(dataFrameCount >= maxDataFrameAmount){
-            //     frames.add(frameGenerator.rstStreamFrame(-1, ErrorCodes.CANCEL));
-            // }
 
             // Working code... (don't delete please)
             // byte[] resBody = response.getBody().getBytes();
@@ -196,21 +188,14 @@ public class Http2RequestConverter {
             boolean endOfStream = false;
             int dataFrameCount = 0;
 
-            // if(WebServer.ENFORCE_MAX_PARTIAL_ON_HTTP2 && response.getResponseCode() == 206){
-            //     maxDataFrameAmount = (int)Math.ceil(WebServer.MAX_PARTIAL_DATA_LENGTH / dataSize);
-            // }
-
             stream.send(frameGenerator.responseHeadersFrame(response.getResponseCode(), response.getHeaders(), -1, true, false));
 
+            // TODO: further optimize new DataFrame to reduce latency
             while(!endOfStream && (dataFrameCount < maxDataFrameAmount || maxDataFrameAmount == -1)){
                 byte[] data = response.getBody().getBytes(dataSize);
                 stream.send(frameGenerator.dataFrame(data, -1, endOfStream = data.length != dataSize));
                 dataFrameCount++;
             }
-
-            // if(dataFrameCount >= maxDataFrameAmount){
-            //     stream.send(frameGenerator.rstStreamFrame(-1, ErrorCodes.CANCEL));
-            // }
         }else if(response.getHeaders().size() > 0){
             stream.send(frameGenerator.responseHeadersFrame(response.getResponseCode(), response.getHeaders(), -1, true, true));
         }else{

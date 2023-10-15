@@ -69,7 +69,7 @@ public class RequestParser {
                     headers.add(key, val);
                 }else{
                     EntityInfo entityInfo = headers.getEntityInfo();
-                    int length = entityInfo.getLength();
+                    long length = entityInfo.getLength();
                     
                     if(length > 0){
                         if(entityInfo.getType().equals("multipart/form-data")){
@@ -87,7 +87,7 @@ public class RequestParser {
                                     body.writeToBody(content, sizeRead);
                                 }
                             }else{
-                                body.writeToBody(reader.readNBytes(length));
+                                body.writeToBody(reader.readNBytes((int)length));
                             }
                         }
                     }else if(basicInfo.getMethod().equals("PRI")){
