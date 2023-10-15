@@ -15,13 +15,13 @@ package com.vincentcodes.webserver.component.header;
  * Content-Location
  */
 public class EntityInfo {
-    private int length;
+    private long length;
     private String type;
     private String encoding;
     private String transferEncoding;
     private RangeHeader range;
     
-    public EntityInfo(int length, String type, String encoding, String transferEncoding, RangeHeader range) {
+    public EntityInfo(long length, String type, String encoding, String transferEncoding, RangeHeader range) {
         this.length = length;
         this.type = type;
         this.encoding = encoding;
@@ -29,7 +29,7 @@ public class EntityInfo {
         this.range = range;
     }
 
-    public static EntityInfo create(int length, String type, String encoding, String transferEncoding, String range){
+    public static EntityInfo create(long length, String type, String encoding, String transferEncoding, String range){
         return new EntityInfo(
             length < 0? 0 : length,
             type == null? "" : type,
@@ -39,7 +39,7 @@ public class EntityInfo {
     }
     public static EntityInfo create(String length, String type, String encoding, String transferEncoding, String range){
         try{
-            return create(Integer.parseInt(length), type, encoding, transferEncoding, range);
+            return create(Long.parseLong(length), type, encoding, transferEncoding, range);
         }catch(NumberFormatException e){
             return create(0, type, encoding, transferEncoding, range);
         }
@@ -49,7 +49,7 @@ public class EntityInfo {
      * From "content-length"
      * @return 0 if no content is provided
      */
-    public int getLength() {
+    public long getLength() {
         return length;
     }
 

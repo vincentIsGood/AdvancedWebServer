@@ -25,13 +25,12 @@ public class RangeHeader {
         // skip "byte="
         String range = rangeHeader.substring(rangeHeader.indexOf('=') + 1);
         String[] startAndEnd = range.split("-");
-        int rangeStart = Integer.parseInt(startAndEnd[0]);
-        int rangeEnd = -1;
+        long rangeStart = Long.parseLong(startAndEnd[0]);
+        long rangeEnd = -1;
 
         if(startAndEnd.length > 1) {
-            rangeEnd = Integer.parseInt(startAndEnd[1]);
+            rangeEnd = Long.parseLong(startAndEnd[1]);
         }
-
         return new RangeHeader("byte", rangeStart, rangeEnd);
     }
 

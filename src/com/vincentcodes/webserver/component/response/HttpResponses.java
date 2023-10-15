@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
+import com.vincentcodes.webserver.WebServer;
 import com.vincentcodes.webserver.component.body.HttpBody;
 import com.vincentcodes.webserver.component.body.HttpBodyStream;
 import com.vincentcodes.webserver.component.header.EntityEncodings;
@@ -47,7 +48,7 @@ public class HttpResponses {
      * long is currently not supported.
      * @param startingByte 0 is fine
      */
-    public static ResponseBuilder usePartialContent(File file, int startingByte, int endingByte) throws IOException{
+    public static ResponseBuilder usePartialContent(File file, long startingByte, long endingByte) throws IOException{
         long fileTotalSize = file.length();
         if (startingByte < 0 || endingByte >= fileTotalSize || endingByte < startingByte) {
             return HttpResponses.generate416Response(fileTotalSize);
@@ -69,9 +70,12 @@ public class HttpResponses {
              * ...
              * (binary content)
              */
-            int contentLength = endingByte-startingByte+1;
-            
-            byte[] buffer = new byte[contentLength];
+            // TODO: fix this thing (support long)
+            long contentLength = endingByte-startingByte+1;
+            if(contentLength > Integer.MAX_VALUE){
+                WebServer.logger.warn("Requested payload size is larger than Integer.MAX_VALUE");
+            }
+            byte[] buffer = new byte[(int)contentLength];
             fis.read(buffer);
             requestBody.writeToBody(buffer);
         }
@@ -105,9 +109,11 @@ public class HttpResponses {
         HttpHeaders headers = response.getHeaders();
 
         try(FileInputStream fis = new FileInputStream(file)){
-            byte[] buffer = new byte[(int)file.length()];
-            fis.read(buffer);
-            requestBody.writeToBody(buffer);
+            byte[] buffer = new byte[4096];
+            int bytesRead;
+            while((bytesRead = fis.read(buffer)) != -1){
+                requestBody.writeToBody(buffer, bytesRead);
+            }
         }
         
         EntityEncodings acceptedEncoding = requestBody.getAcceptedEncoding();
