@@ -51,7 +51,7 @@ public class DefaultGetRequestTests {
     public void test_response_got_modified() throws InvocationTargetException{
         sampleRequest = RequestParser.parse(RequestGenerator.GET.generateRequest("/README.md"));
         response = dispatcher.dispatchObjectToHandlers(sampleRequest);
-        System.out.println(new File("./").getAbsolutePath());
+        // System.out.println(new File("./").getAbsolutePath());
         assertEquals(200, response.getResponseCode());
         assertTrue(response.getBody().string().contains("Advanced Web Server"));
     }

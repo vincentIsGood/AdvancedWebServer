@@ -5,15 +5,14 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
-import com.vincentcodes.webserver.WebServer;
 import com.vincentcodes.webserver.component.body.HttpBody;
+import com.vincentcodes.webserver.component.body.HttpBodyFileStream;
 import com.vincentcodes.webserver.component.body.HttpBodyStream;
 import com.vincentcodes.webserver.component.header.EntityEncodings;
 import com.vincentcodes.webserver.component.header.HttpHeaders;
 import com.vincentcodes.webserver.dispatcher.operation.DispatcherOperation;
 import com.vincentcodes.webserver.util.FileExtUtils;
 
-//TODO: Search for FileInputStream and do not allow them to put whole file in memory
 /**
  * This class returns common http responses. It is used in
  * implementations of {@link DispatcherOperation}.
@@ -54,37 +53,40 @@ public class HttpResponses {
             return HttpResponses.generate416Response(fileTotalSize);
         }
 
-        HttpBody requestBody = new HttpBodyStream();
+        /**
+         * According to MDN:
+         * HTTP/1.1 206 Partial Content
+         * Content-Range: bytes 0-1023/146515
+         * Content-Length: 1024
+         * 
+         * ...
+         * (binary content)
+         */
+        long contentLength = endingByte-startingByte+1;
+        HttpBodyFileStream requestBody = new HttpBodyFileStream(file, contentLength);
         ResponseBuilder response = ResponseBuilder.getInstance(206, requestBody);
         HttpHeaders headers = response.getHeaders();
 
-        try(FileInputStream fis = new FileInputStream(file)){
-            fis.skip(startingByte);
+        requestBody.skip(startingByte);
 
-            /**
-             * According to MDN:
-             * HTTP/1.1 206 Partial Content
-             * Content-Range: bytes 0-1023/146515
-             * Content-Length: 1024
-             * 
-             * ...
-             * (binary content)
-             */
-            // TODO: fix this thing (support long)
-            long contentLength = endingByte-startingByte+1;
-            if(contentLength > Integer.MAX_VALUE){
-                WebServer.logger.warn("Requested payload size is larger than Integer.MAX_VALUE");
-            }
-            byte[] buffer = new byte[(int)contentLength];
-            fis.read(buffer);
-            requestBody.writeToBody(buffer);
-        }
+        // TODO: Legacy Code
+        // try(FileInputStream fis = new FileInputStream(file)){
+        //     fis.skip(startingByte);
+
+        //     long contentLength = endingByte-startingByte+1;
+        //     if(contentLength > Integer.MAX_VALUE){
+        //         WebServer.logger.warn("Requested payload size is larger than Integer.MAX_VALUE");
+        //     }
+        //     byte[] buffer = new byte[(int)contentLength];
+        //     fis.read(buffer);
+        //     requestBody.writeToBody(buffer);
+        // }
 
         headers.add("accept-ranges", "bytes");
         headers.add("content-type", FileExtUtils.determineMimeType(file));
         // String.format("bytes %d-%d/%d")
         headers.add("content-range", "bytes " + startingByte + "-" + endingByte + "/" + fileTotalSize);
-        headers.add("content-length", Integer.toString(requestBody.length()));
+        headers.add("content-length", Long.toString(requestBody.length()));
 
         return response;
     }
@@ -96,26 +98,29 @@ public class HttpResponses {
         return useWholeFileAsBody(file, null, isAttachment);
     }
     /**
-     * @param acceptEncoding Text files will often be compressed, if any acceptEncoding is specified
+     * @param acceptEncoding Text files will often be compressed, if any acceptEncoding is specified.
      */
     public static ResponseBuilder useWholeFileAsBody(File file, EntityEncodings acceptEncoding, boolean isAttachment) throws IOException {
         HttpBody requestBody = null;
+        ResponseBuilder response = null;
         boolean isCommonTextFile = FileExtUtils.isCommonTextFile(FileExtUtils.extractFileExtension(file.getName()));
         if(isCommonTextFile){
             requestBody = new HttpBodyStream(acceptEncoding);
-        }else
-            requestBody = new HttpBodyStream();
-        ResponseBuilder response = ResponseBuilder.getDefault(requestBody);
-        HttpHeaders headers = response.getHeaders();
+            response = ResponseBuilder.getDefault(requestBody);
 
-        try(FileInputStream fis = new FileInputStream(file)){
-            byte[] buffer = new byte[4096];
-            int bytesRead;
-            while((bytesRead = fis.read(buffer)) != -1){
-                requestBody.writeToBody(buffer, bytesRead);
+            try(FileInputStream fis = new FileInputStream(file)){
+                byte[] buffer = new byte[4096];
+                int bytesRead;
+                while((bytesRead = fis.read(buffer)) != -1){
+                    requestBody.writeToBody(buffer, bytesRead);
+                }
             }
+        }else{
+            requestBody = new HttpBodyFileStream(file, file.length());
+            response = ResponseBuilder.getDefault(requestBody);
         }
         
+        HttpHeaders headers = response.getHeaders();
         EntityEncodings acceptedEncoding = requestBody.getAcceptedEncoding();
         if(acceptEncoding != null 
         && (acceptedEncoding == EntityEncodings.GZIP || acceptedEncoding == EntityEncodings.DEFLATE)){
