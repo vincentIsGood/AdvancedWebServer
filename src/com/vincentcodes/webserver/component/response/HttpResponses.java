@@ -5,7 +5,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
-import com.vincentcodes.webserver.WebServer;
 import com.vincentcodes.webserver.component.body.HttpBody;
 import com.vincentcodes.webserver.component.body.HttpBodyFileStream;
 import com.vincentcodes.webserver.component.body.HttpBodyStream;

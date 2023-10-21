@@ -16,7 +16,7 @@ import com.vincentcodes.webserver.component.header.EntityEncodings;
 public class HttpBodyFileStream implements HttpBody {
     private final File file;
     private final boolean deleteOnClose;
-    private final long lengthToRead;
+    private long lengthToRead;
     private long readCount;
 
     private FileOutputStream fos;
@@ -39,7 +39,7 @@ public class HttpBodyFileStream implements HttpBody {
         this(file, lengthToRead, false, true);
     }
     /**
-     * Creates a temporary file to store and get the data. lengthToRead is set to 0
+     * Creates a temporary file to store and get the data
      */
     public HttpBodyFileStream() throws IOException{
         this(File.createTempFile("webserver-res", null), 0, true, false);
@@ -64,8 +64,9 @@ public class HttpBodyFileStream implements HttpBody {
             throw new IOException("This HttpBody is not configured to allow write operations on the file.");
         if(maxCap != -1){
             if(writtenCount > maxCap) return;
-            writtenCount += 1;
         }
+        writtenCount += 1;
+        lengthToRead = writtenCount;
         fos.write(b);
     }
 
@@ -80,8 +81,9 @@ public class HttpBodyFileStream implements HttpBody {
             throw new IOException("This HttpBody is not configured to allow write operations on the file.");
         if(maxCap != -1){
             if(writtenCount > maxCap) return;
-            writtenCount += length;
         }
+        writtenCount += length;
+        lengthToRead = writtenCount;
         fos.write(b, 0, length);
     }
 
@@ -110,11 +112,11 @@ public class HttpBodyFileStream implements HttpBody {
      */
     @Override
     public byte[] getBytes(){
-        if(readCount >= length()){
+        if(readCount >= lengthToRead){
             return new byte[0];
         }
         try{
-            readCount += length();
+            readCount += lengthToRead;
             return fis.readAllBytes();
         }catch(IOException e){
             e.printStackTrace();
@@ -129,12 +131,12 @@ public class HttpBodyFileStream implements HttpBody {
      */
     @Override
     public byte[] getBytes(int length) {
-        if(readCount >= length()){
+        if(readCount >= lengthToRead){
             return new byte[0];
         }
         try{
             readCount += length;
-            return fis.readNBytes(readCount > length()? (int)(length() - (readCount - length)) : length);
+            return fis.readNBytes(readCount > lengthToRead? (int)(lengthToRead - (readCount - length)) : length);
         }catch(IOException e){
             e.printStackTrace();
             return new byte[0];
@@ -146,7 +148,7 @@ public class HttpBodyFileStream implements HttpBody {
      */
     @Override
     public int getBytes(byte[] buffer){
-        if(readCount >= length()){
+        if(readCount >= lengthToRead){
             return -1;
         }
         try{
