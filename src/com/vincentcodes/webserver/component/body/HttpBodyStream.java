@@ -116,6 +116,18 @@ public class HttpBodyStream implements HttpBody {
             return new byte[0];
         return Arrays.copyOfRange(bytes, nextByteIndex, Math.min(nextByteIndex += length, bytes.length));
     }
+
+    /**
+     * @return -1 while error or eof is reached
+     */
+    @Override
+    public int getBytes(byte[] buffer){
+        byte[] bytes = getBytes();
+        if(nextByteIndex >= bytes.length)
+            return -1;
+        System.arraycopy(bytes, nextByteIndex, buffer, 0, Math.min(nextByteIndex += buffer.length, bytes.length));
+        return buffer.length;
+    }
     
     /**
      * This method uses {@link #getBytes()}, which will finish off the
@@ -133,7 +145,7 @@ public class HttpBodyStream implements HttpBody {
      * the compressed size)
      */
     @Override
-    public int length(){
+    public long length(){
         return getBytes().length;
     }
 

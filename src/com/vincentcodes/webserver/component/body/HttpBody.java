@@ -27,6 +27,8 @@ public interface HttpBody extends Closeable{
 
     public byte[] getBytes(int length);
 
+    public int getBytes(byte[] buffer);
+
     /**
      * Available bytes to be read from the stream
      */
@@ -36,5 +38,5 @@ public interface HttpBody extends Closeable{
 
     public void streamBytesTo(OutputStream os) throws IOException;
 
-    public int length();
+    public long length();
 }
