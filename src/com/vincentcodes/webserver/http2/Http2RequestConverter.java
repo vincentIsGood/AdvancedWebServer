@@ -3,8 +3,9 @@ package com.vincentcodes.webserver.http2;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.LinkedList;
+import java.util.Deque;
 import java.util.List;
 import java.util.Optional;
 
@@ -30,12 +31,12 @@ import com.vincentcodes.webserver.http2.types.HeadersFrame;
  * ResponseBuilder is also involved here. {@link #fromResponse(ResponseBuilder, int)}
  */
 public class Http2RequestConverter {
-    private LinkedList<Http2Frame> buffer;
+    private Deque<Http2Frame> buffer;
     private Http2FrameGenerator frameGenerator;
     private Http2Configuration config;
 
     public Http2RequestConverter(Http2FrameGenerator frameGenerator){
-        buffer = new LinkedList<>();
+        buffer = new ArrayDeque<>();
         this.frameGenerator = frameGenerator;
         this.config = frameGenerator.getConfig();
     }
