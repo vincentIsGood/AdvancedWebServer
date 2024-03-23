@@ -83,8 +83,10 @@ public class Http2Connection {
      * @see Http2Stream#processQueuedUpFrames()
      */
     private void universalInputHandler(Http2Stream stream, Http2Frame frame) throws IOException, InvocationTargetException{
-        if(WebServer.lowLevelDebugMode && !(frame.payload instanceof WindowUpdateFrame))
-            WebServer.logger.debug("Recv: " + Http2Frame.getString(frame));
+        if(WebServer.lowLevelDebugMode && (
+            !(frame.payload instanceof WindowUpdateFrame) 
+            || (frame.payload instanceof WindowUpdateFrame && WebServer.displayWindowUpdates)
+        )) WebServer.logger.debug("Recv: " + Http2Frame.getString(frame));
 
         Http2RequestConverter converter = stream.getConverter();
         
@@ -152,8 +154,10 @@ public class Http2Connection {
      * @see Http2Stream#send()
      */
     private void universalOutputHandler(Http2Stream stream, Http2Frame frame) throws IOException, InvocationTargetException{
-        if(WebServer.lowLevelDebugMode && !(frame.payload instanceof WindowUpdateFrame))
-            WebServer.logger.debug("Send: " + Http2Frame.getString(frame));
+        if(WebServer.lowLevelDebugMode && (
+            !(frame.payload instanceof WindowUpdateFrame) 
+            || (frame.payload instanceof WindowUpdateFrame && WebServer.displayWindowUpdates)
+        )) WebServer.logger.debug("Send: " + Http2Frame.getString(frame));
         
         synchronized(sendLock){
             Http2Frame.streamBytesTo(frame, os);

@@ -136,6 +136,7 @@ public class Http2Stream {
     /**
      * Send frame through connection and changes state of the stream
      * automatically. 
+     * [Restored] Will queue up frames if server's window is not enough.
      * <p>
      * outputHandler must be set before calling this method.
      * @param frame [mutate] streamId will be set to the current 
@@ -146,8 +147,16 @@ public class Http2Stream {
      */
     public void send(Http2Frame frame) throws IOException, InvocationTargetException{
         frame.streamIdentifier = streamId;
+
+        // -------- MAYBE unstable ---------
+        // To make server side respect client's window: uncomment the following
+        if(currentServerWindow <= 0 || framesToBeSent.size() > 0){
+            framesToBeSent.add(frame);
+            return;
+            // sends in Http2Stream#modifyServerWindow
+        }
+        // --------------------------
         sendUnsafe(frame);
-        // framesToBeSent.add(frame);
     }
     public void send(List<Http2Frame> frames) throws IOException, InvocationTargetException{
         for(Http2Frame frame : frames){
@@ -159,7 +168,9 @@ public class Http2Stream {
      * Currently has NO effect
      */
     public void sendQueuedUpFrames() throws InvocationTargetException, IOException{
+        if(framesToBeSent.size() == 0 || currentServerWindow <= 0) return;
         executorService.submit(()->{
+            if(state == StreamState.CLOSED) return;
             while(framesToBeSent.size() > 0 && currentServerWindow > 0){
                 try {
                     sendUnsafe(framesToBeSent.poll());
@@ -171,21 +182,17 @@ public class Http2Stream {
         });
     }
     /**
-     * [Removed] Will queue up frames if server's window is not enough.
      * Will resend them AS SOON AS WindowUpdate is received.
      */
     private void sendUnsafe(Http2Frame frame) throws IOException, InvocationTargetException{
-        // Still in Test stage: To make server side respect client's window: uncomment the following
-        // if(currentServerWindow < 0){
-        //     framesToBeSent.add(frame);
-        //     return;
-        // }
-        // if(frame.payload instanceof DataFrame){
-        //     currentServerWindow -= frame.payloadLength;
-        // }
         if(state != StreamState.CLOSED){
             transitionState(frame, true);
             outputHandler.accept(this, frame);
+
+            if(frame.payload instanceof DataFrame){
+                currentServerWindow -= frame.payloadLength;
+            }
+            // WebServer.logger.warn("Window: " + currentServerWindow);
         }else if(WebServer.THROW_ERROR_WHEN_SEND_ON_CLOSED){
             throw new IOException("Http2Stream is closed: " + toString());
         }
@@ -201,8 +208,10 @@ public class Http2Stream {
             currentClientWindow += Http2Connection.WINDOW_UPDATE_AMOUNT;
         }
     }
-    public void modifyServerWindow(WindowUpdateFrame windowUpdateFrame){
+    public void modifyServerWindow(WindowUpdateFrame windowUpdateFrame) throws IOException, InvocationTargetException{
         currentServerWindow += windowUpdateFrame.windowSizeIncrement;
+        // WebServer.logger.warn("Window: " + currentServerWindow);
+        sendQueuedUpFrames();
     }
 
     /**
