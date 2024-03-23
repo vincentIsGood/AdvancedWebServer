@@ -54,18 +54,22 @@ public class ServerThreadUtils {
 
     /**
      * This is a blocking method.
+     * 
+     * Note: http2 don't seem to work because my webserver has done the initial part 
+     * (ie. settingsframe) causing an inconsistency between client and remote server.
+     * 
      * @param request client request
      * @param response Response of this webserver corresponding to the client request. 
      * It checks if any handlers allows the use of tunneling
-     * @param httpReplyClient this consumer is only used whenever request exchange happens 
-     * and when header {@code X-Vws-Exchange-Format} is set to value other than {@code raw}
+     * @param httpReplyClient this consumer is only used whenever request exchange happens.
      * It takes remote server response as the 1st arg and output stream of the current 
      * webserver's socket as the 2nd arg.
      */
     public static void socketTunnelInitialization(HttpRequest request, ResponseBuilder response, BiConsumer<ResponseBuilder, OutputStream> httpReplyClient) throws IOException, InterruptedException{
+        // TODO: sanitize destination?
         String tunnelDest = response.getHeaders().getHeader("X-Vws-Raw-Tunnel");
-        boolean exchangeRequest = Boolean.parseBoolean(response.getHeaders().getHeader("X-Vws-Exchange-Once"));
-        // TODO: sanitize dest
+        // what to do with the current request
+        String requestPolicy = response.getHeaders().getHeader("X-Vws-Req-Policy").toLowerCase();
 
         int colonIndex = 0;
         int port = 80;
@@ -74,19 +78,23 @@ public class ServerThreadUtils {
             tunnelDest = tunnelDest.substring(0, colonIndex);
         }
 
-        Thread wsReaderThread = null;
-        try(HttpTunnel tunnel = new HttpTunnel(tunnelDest, port)){
+        Thread remoteServerReaderThread = null;
+        boolean useSsl = response.getHeaders().hasHeader("X-Vws-Ssl-Tunnel")? Boolean.parseBoolean(response.getHeaders().getHeader("X-Vws-Ssl-Tunnel")) : false;
+        boolean dangerous = response.getHeaders().hasHeader("X-Vws-Ssl-Tunnel-Danger")? Boolean.parseBoolean(response.getHeaders().getHeader("X-Vws-Ssl-Tunnel-Danger")) : false;
+        try(HttpTunnel tunnel = new HttpTunnel(tunnelDest, port, useSsl, dangerous)){
             tunnel.open();
             IOContainer socket = request.getSocket();
             BufferedInputStream tunnelIs = new BufferedInputStream(tunnel.getSocket().getInputStream());
             BufferedOutputStream tunnelOs = new BufferedOutputStream(tunnel.getSocket().getOutputStream());
             
-            if(exchangeRequest){
+            if(requestPolicy.equals("exchange")){
                 // Just reply client, without modifying their response.
                 httpReplyClient.accept(tunnel.send(request), socket.getOutputStream());
+            }else if(requestPolicy.equals("one-way")){
+                tunnel.sendOneWay(request);
             }
 
-            (wsReaderThread = new Thread("Tunnel: WS Reader Thread"){
+            (remoteServerReaderThread = new Thread("Tunnel: Remote Server Reader Thread"){
                 @Override
                 public void run() {
                     try {
@@ -99,9 +107,9 @@ public class ServerThreadUtils {
 
             HttpTunnel.streamToUntilClose(socket.getInputStream(), tunnelOs);
         }finally{
-            if(wsReaderThread != null){
-                wsReaderThread.interrupt();
-                wsReaderThread.join();
+            if(remoteServerReaderThread != null){
+                remoteServerReaderThread.interrupt();
+                remoteServerReaderThread.join();
             }
         }
     }

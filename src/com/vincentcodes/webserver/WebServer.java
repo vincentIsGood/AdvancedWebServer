@@ -107,6 +107,7 @@ public class WebServer {
         }
     };
     public static boolean lowLevelDebugMode = false;
+    public static boolean displayWindowUpdates = false;
 
     public static final ObjectPool PUBLIC_POOL = new ObjectPool();
     public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("E, dd MMM yyyy HH:mm:ss z", Locale.US);

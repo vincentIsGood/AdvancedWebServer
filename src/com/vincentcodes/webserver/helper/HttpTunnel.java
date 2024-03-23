@@ -5,8 +5,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 import com.vincentcodes.webserver.WebServer;
 import com.vincentcodes.webserver.component.request.HttpRequest;
@@ -34,20 +42,26 @@ public class HttpTunnel implements Closeable {
 
     /**
      * Connection is made to the destination when 
-     * {@link #send(HttpRequest)} or {@link #sendOnce(HttpRequest)}
-     * is called.
+     * any of the send method is called.
      */
     public HttpTunnel(String host, int port, boolean ssl){
+        this(host, port, ssl, false);
+    }
+    public HttpTunnel(String host, int port){
+        this(host, port, false, false);
+    }
+    public HttpTunnel(String host, int port, boolean ssl, boolean dangerous){
         this.host = host;
         this.port = port;
         this.ssl = ssl;
         if(ssl){
-            sslSocketFactory = (SSLSocketFactory)SSLSocketFactory.getDefault();
+            try {
+                sslSocketFactory = dangerous? 
+                    createDangerousSSLSocketFactory() : (SSLSocketFactory)SSLSocketFactory.getDefault();
+            } catch (KeyManagementException | NoSuchAlgorithmException e) {
+                throw new RuntimeException(e);
+            }
         }
-    }
-
-    public HttpTunnel(String host, int port){
-        this(host, port, false);
     }
 
     public void open() throws IOException{
@@ -61,6 +75,16 @@ public class HttpTunnel implements Closeable {
     }
 
     /**
+     * Just send the request. Will not expect server response.
+     */
+    public void sendOneWay(HttpRequest request) throws IOException{
+        if(socket == null) open();
+
+        OutputStream os = socket.getOutputStream();
+        writeRequestToOutputStream(os, request);
+    }
+
+    /**
      * If you want to send request once, use {@link #sendOnce(HttpRequest)} instead.
      * <p>
      * Lazying loading is implemented. If {@link #send(HttpRequest)}
@@ -70,13 +94,9 @@ public class HttpTunnel implements Closeable {
      * @return a parsed response coming from the dest webserver.
      */
     public ResponseBuilder send(HttpRequest request) throws IOException{
-        if(socket == null) open();
-
-        OutputStream os = socket.getOutputStream();
-        InputStream is = socket.getInputStream();
-
-        writeRequestToOutputStream(os, request);
+        sendOneWay(request);
         
+        InputStream is = socket.getInputStream();
         return ResponseParser.parse(is);
     }
 
@@ -114,6 +134,28 @@ public class HttpTunnel implements Closeable {
         return sslSocketFactory.createSocket(host, port);
     }
 
+    /**
+     * Trust all certs
+     */
+    private SSLSocketFactory createDangerousSSLSocketFactory() throws NoSuchAlgorithmException, KeyManagementException{
+        SSLContext context = SSLContext.getInstance("TLSv1.3");
+        context.init(null, new TrustManager[]{
+            new X509TrustManager() {
+                @Override
+                public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {}
+
+                @Override
+                public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {}
+
+                @Override
+                public X509Certificate[] getAcceptedIssuers() {
+                    return null;
+                }
+            }
+        }, new SecureRandom());
+        return context.getSocketFactory();
+    }
+
     public static void writeRequestToOutputStream(OutputStream os, HttpRequest request) throws IOException{
         if(request.getWholeRequest() == null){
             os.write(request.toHttpString().getBytes());
@@ -127,7 +169,7 @@ public class HttpTunnel implements Closeable {
     }
     
     public static void streamToUntilClose(InputStream is, OutputStream os) throws IOException{
-        byte[] buffer = new byte[2024];
+        byte[] buffer = new byte[4096];
         int numOfBytesRead = 0;
         while((numOfBytesRead = is.read(buffer)) != -1){
             os.write(buffer, 0, numOfBytesRead);
