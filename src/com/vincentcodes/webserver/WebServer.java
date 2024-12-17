@@ -210,8 +210,8 @@ public class WebServer {
                 WebServer.logger.err("Catching a "+e.getClass().getName()+": " + e.getMessage());
             }
 
-            countTillGc++;
-            if(countTillGc > 10){
+            // mainly for http/1.1 (1 thread per request)
+            if(countTillGc++ > 20){
                 countTillGc = 0;
                 System.gc();
             }

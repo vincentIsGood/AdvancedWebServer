@@ -2,9 +2,9 @@ package com.vincentcodes.webserver.http2;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.List;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -42,8 +42,8 @@ public class Http2Stream {
      */
     // private int maxServerWindow;
     private int currentServerWindow;
-    private Queue<Http2Frame> framesToBeSent;
-    private Queue<Http2Frame> framesToBeRead;
+    private Deque<Http2Frame> framesToBeSent;
+    private Deque<Http2Frame> framesToBeRead;
 
     private StreamIOHandler inputHandler;
     private StreamIOHandler outputHandler;
@@ -73,8 +73,8 @@ public class Http2Stream {
         this.frameGenerator = frameGenerator;
         this.converter = new Http2RequestConverter(frameGenerator);
 
-        framesToBeSent = new ConcurrentLinkedQueue<>();
-        framesToBeRead = new ConcurrentLinkedQueue<>();
+        framesToBeSent = new ArrayDeque<>();
+        framesToBeRead = new ArrayDeque<>();
     }
 
     public StreamState getState() {
