@@ -50,6 +50,8 @@ public class WebSocketFrameParser {
             frame.isMasked = (byte)((toUnsignedByte(nextTwoBytes[1]) & FrameMask.IS_MASKED_MASK.value) >> 7);
             frame.payloadLength = (byte)(nextTwoBytes[1] & FrameMask.PAYLOAD_LEN_MASK.value);
 
+            // TODO: missing 2 bytes from status code
+
             if(frame.payloadLength == 126){
                 is.read(nextTwoBytes);
                 frame.payloadLength = getIntFrom2Bytes(nextTwoBytes, 0);

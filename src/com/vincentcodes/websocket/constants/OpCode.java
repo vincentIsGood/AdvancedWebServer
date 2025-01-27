@@ -10,7 +10,7 @@ public enum OpCode {
 
     TEXT     ((byte) 1),
     BINARY   ((byte) 2),
-    
+
     // Closes connection
     CLOSE    ((byte) 8),
 

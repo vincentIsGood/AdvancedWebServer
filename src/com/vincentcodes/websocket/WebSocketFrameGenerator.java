@@ -34,12 +34,12 @@ public class WebSocketFrameGenerator {
     }
 
     public WebSocketFrame pingFrame(){
-        return frame((byte)1, OpCode.PING, "", (short)0);
+        return frame((byte)1, OpCode.PING, "", FrameConstants.StatusCodes.NONE);
     }
     public WebSocketFrame pongFrame(){
-        return frame((byte)1, OpCode.PONG, "", (short)0);
+        return frame((byte)1, OpCode.PONG, "", FrameConstants.StatusCodes.NONE);
     }
-    
+
     /**
      * @see WebSocketFrameGenerator#frame(byte, byte, String, short)
      */

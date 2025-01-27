@@ -55,7 +55,7 @@ public class WebSocketUpgrader {
             String clientWSKey = request.getHeaders().getHeader("sec-websocket-key");
             
             response.setResponseCode(101);
-            
+
             HttpHeaders headers = response.getHeaders();
             headers.add("Connection", "Upgrade");
             headers.add("Upgrade", "websocket");

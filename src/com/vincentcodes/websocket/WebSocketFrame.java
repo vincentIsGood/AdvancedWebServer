@@ -62,7 +62,7 @@ public class WebSocketFrame {
                 os.write(longToByteArray(payloadLength));
             }else if(payloadLength > 125){
                 os.write(isMasked << 7 | 126);
-                os.write(intToByteArray((int)payloadLength));
+                os.write(shortToByteArray((short)payloadLength));
             }else{
                 os.write(isMasked << 7 | (byte)payloadLength);
             }

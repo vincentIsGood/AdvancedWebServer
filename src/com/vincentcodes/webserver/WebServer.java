@@ -3,6 +3,7 @@ package com.vincentcodes.webserver;
 import java.io.File;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -81,16 +82,16 @@ public class WebServer {
 
     public static final int MAX_THREAD_POOL_SIZE = 64;
 
-    public static final int CONNECTION_READ_TIMEOUT_MILSEC = 6000; // 6s
-    public static final int CONNECTION_WRITE_TIMEOUT_MILSEC = 120*(60*1000); // 120mins
-    public static final int TUNNEL_READ_TIMEOUT_MILSEC = 120*(60*1000); // 120mins
+    public static int CONNECTION_READ_TIMEOUT_MILSEC = 6000; // 6s
+    public static int CONNECTION_WRITE_TIMEOUT_MILSEC = 120*(60*1000); // 120mins
+    public static int TUNNEL_READ_TIMEOUT_MILSEC = 120*(60*1000); // 120mins
 
-    public static final int WEBSOCKET_PING_INTERVAL_MILSEC = 30*(60*1000); // 30mins
+    public static int WEBSOCKET_PING_INTERVAL_MILSEC = 10*(60*1000); // 10mins
 
     public static final int MAX_HTTP2_STREAMS_INDEX = 65536-1; // default: 2**31-1
     public static final int HTTP2_HANDLER_THREADS = 8;
 
-    public static final boolean THROW_ERROR_WHEN_SEND_ON_CLOSED = true;
+    public static boolean THROW_ERROR_WHEN_SEND_ON_CLOSED = true;
 
     /**
      * Note. You need at least 1MiB to keep the streaming service 
@@ -169,7 +170,8 @@ public class WebServer {
             logger.warn("Creating a non-ssl webserver");
         }
         // allow server take in raw bytes, and detect if SSL/TLS is needed
-        this.serverSocket = new ServerSocket(configuration.port);
+        this.serverSocket = new ServerSocket(
+            configuration.port, 50, InetAddress.getByName(configuration.getBindHost()));
 
         executorService = configuration.useMultithread()? 
             Executors.newFixedThreadPool(MAX_THREAD_POOL_SIZE) : 
@@ -266,6 +268,7 @@ public class WebServer {
 
     public static class Configuration{
         // parameters
+        private String bindHost = null;
         private int port = 5050;
         private File keyStoreFile;
         private String keyStorePassword;
@@ -278,6 +281,7 @@ public class WebServer {
 
         protected Configuration readonly(){
             Configuration conf = new Configuration();
+            conf.bindHost = bindHost;
             conf.port = port;
             conf.keyStoreFile = keyStoreFile;
             conf.keyStorePassword = keyStorePassword;
@@ -288,6 +292,10 @@ public class WebServer {
             conf.extensions = extensions;
             conf.forceHttp2 = forceHttp2;
             return conf;
+        }
+
+        public String getBindHost() {
+            return bindHost;
         }
 
         public int getPort() {
@@ -327,6 +335,11 @@ public class WebServer {
         }
     }
     public static class Builder extends Configuration{
+        public Builder setBindHost(String bindHost) {
+            super.bindHost = bindHost;
+            return this;
+        }
+
         /**
          * Web server port
          */
