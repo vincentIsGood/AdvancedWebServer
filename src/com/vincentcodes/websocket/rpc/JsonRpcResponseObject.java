@@ -2,7 +2,7 @@ package com.vincentcodes.websocket.rpc;
 
 public class JsonRpcResponseObject {
     public final String jsonrpc = "2.0"; // optional. But it MUST BE "2.0"
-    public String id;
+    public String id; // should match req id
     public Object result;
     public JsonRpcErrorObject error;
 

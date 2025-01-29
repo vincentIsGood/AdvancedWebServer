@@ -1,5 +1,7 @@
 package com.vincentcodes.websocket;
 
+import java.nio.charset.StandardCharsets;
+
 import com.vincentcodes.websocket.constants.FrameConstants;
 import com.vincentcodes.websocket.constants.OpCode;
 
@@ -34,12 +36,12 @@ public class WebSocketFrameGenerator {
     }
 
     public WebSocketFrame pingFrame(){
-        return frame((byte)1, OpCode.PING, "", (short)0);
+        return frame((byte)1, OpCode.PING, "", FrameConstants.StatusCodes.NONE);
     }
     public WebSocketFrame pongFrame(){
-        return frame((byte)1, OpCode.PONG, "", (short)0);
+        return frame((byte)1, OpCode.PONG, "", FrameConstants.StatusCodes.NONE);
     }
-    
+
     /**
      * @see WebSocketFrameGenerator#frame(byte, byte, String, short)
      */
@@ -57,12 +59,14 @@ public class WebSocketFrameGenerator {
      */
     public WebSocketFrame frame(byte fin, byte opcode, String content, short statusCode){
         if(content == null) content = "";
+        byte[] payloadUtf8Bytes = content.getBytes(StandardCharsets.UTF_8);
         WebSocketFrame frame = new WebSocketFrame();
         frame.fin = fin;
         frame.rsv = 0;
         frame.opcode = opcode;
         frame.isMasked = 0;
-        frame.payloadLength = content.length() + (statusCode <= 0? 0 : 2);
+        frame.payloadLength = payloadUtf8Bytes.length + (statusCode <= 0? 0 : 2);
+        frame.payloadInBytes = payloadUtf8Bytes;
         frame.maskingKey = null;
         frame.payload = content;
         frame.statusCode = (short)statusCode;

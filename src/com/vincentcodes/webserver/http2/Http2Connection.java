@@ -150,6 +150,7 @@ public class Http2Connection {
         stream.sendQueuedUpFrames();
     }
 
+    private static int countTillGc = 0;
     /**
      * @see Http2Stream#send()
      */
@@ -163,6 +164,11 @@ public class Http2Connection {
             Http2Frame.streamBytesTo(frame, os);
         }
         // os.write(frame.toBytes());
+
+        countTillGc++;
+        if(countTillGc > 1000){
+            System.gc();
+        }
     }
 
     /**
