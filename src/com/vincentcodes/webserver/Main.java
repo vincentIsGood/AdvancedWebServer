@@ -21,6 +21,7 @@ public class Main{
         config.addOption("-d", false, "<directory>", "base url");
         config.addOption("-f", false, "<.jks file>", "jks file for https");
         config.addOption("-p", false, "<port>", "defaults to 5050 port");
+        config.addOption("--bind", false, "<host>", "bind to a host / interface. defaults to 0.0.0.0");
         config.addOption("--password", false, "<jks password>", "password is required");
 
         config.addOption("--log", true, "Enable logging to logs/");
@@ -77,6 +78,9 @@ public class Main{
         }
         if(cmd.hasOption("-p")){
             serverBuilder.setPort(Integer.parseInt(cmd.getOptionValue("-p")));
+        }
+        if(cmd.hasOption("--bind")){
+            serverBuilder.setBindHost(cmd.getOptionValue("--bind"));
         }
         if(cmd.hasOption("--no-defaults")){
             if(cmd.getParameters().size() > 0 && cmd.getParameter(0).equals("download")){

@@ -1,21 +1,24 @@
 package com.vincentcodes.websocket;
 
+import static com.vincentcodes.webserver.util.ByteUtils.longToByteArray;
+import static com.vincentcodes.webserver.util.ByteUtils.shortToByteArray;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 
 import com.vincentcodes.websocket.constants.OpCode;
-import static com.vincentcodes.webserver.util.ByteUtils.*;
 
 public class WebSocketFrame {
     byte fin; // 1 bit (fin = 1/0)
     byte rsv; // 3 bits (reserved bits)
     byte opcode; // 4 bits
     byte isMasked; // 1 bit
-    long payloadLength;
+    long payloadLength; // in utf-8 bytes
     byte[] maskingKey;
     String payload; // max length() == Integer.MAX_VALUE characters
     short statusCode = -1;
+
+    byte[] payloadInBytes; // be sure to set this for toBytes
 
     public byte getFin() {
         return fin;
@@ -75,7 +78,7 @@ public class WebSocketFrame {
                 os.write(shortToByteArray(statusCode));
             }
 
-            os.write(payload.getBytes(StandardCharsets.UTF_8));
+            os.write(payloadInBytes);
         }catch(IOException e){}
         return os.toByteArray();
     }

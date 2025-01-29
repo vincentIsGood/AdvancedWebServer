@@ -268,7 +268,7 @@ public class WebServer {
 
     public static class Configuration{
         // parameters
-        private String bindHost = null;
+        private String bindHost = "0.0.0.0";
         private int port = 5050;
         private File keyStoreFile;
         private String keyStorePassword;
