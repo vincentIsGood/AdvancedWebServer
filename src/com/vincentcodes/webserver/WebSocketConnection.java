@@ -1,6 +1,8 @@
 package com.vincentcodes.webserver;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.stream.Collectors;
 
 import com.vincentcodes.json.CannotMapFromObjectException;
 import com.vincentcodes.json.CannotMapToObjectException;
@@ -39,16 +41,27 @@ public class WebSocketConnection {
      * {@link WebSocket#initConnectionChecker()}.
      */
     public void start() throws IOException{
-        WebSocketFrame frame;
+        WebSocketFrame frame = null;
+        ArrayList<WebSocketFrame> dataWithContinue = new ArrayList<>();
         while((frame = ws.readNextFrame()).getOpcode() != OpCode.CLOSE){
             if(frame.getOpcode() == OpCode.PONG){
                 ws.pingReceived();
                 continue;
             }
+            dataWithContinue.add(frame);
+
+            if(frame.getOpcode() == OpCode.CONTINUE){
+                continue;
+            }
+
+            String payload;
+            if(!dataWithContinue.isEmpty()){
+                payload = dataWithContinue.stream().map(res -> res.getPayload()).collect(Collectors.joining());
+            }else payload = frame.getPayload();
             
             if(ws.getOperator().isJsonRpcEnabled()){
                 try{
-                    JsonRpcResponseObject res = ws.onJsonRpcReceive().handle(mapper.jsonToObject(frame.getPayload(), JsonRpcRequestObject.class));
+                    JsonRpcResponseObject res = ws.onJsonRpcReceive().handle(mapper.jsonToObject(payload, JsonRpcRequestObject.class));
                     if(res != null){
                         ws.send(mapper.objectToJson(res));
                     }
@@ -56,11 +69,12 @@ public class WebSocketConnection {
                     e.printStackTrace();
                 }
             }else{
-                String res = ws.onMessageReceive().handle(frame.getPayload());
+                String res = ws.onMessageReceive().handle(payload);
                 if(res != null){
                     ws.send(res);
                 }
             }
+            dataWithContinue.clear();
         }
         ws.close();
     }
