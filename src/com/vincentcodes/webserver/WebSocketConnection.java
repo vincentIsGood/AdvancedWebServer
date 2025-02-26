@@ -50,7 +50,7 @@ public class WebSocketConnection {
             }
             dataWithContinue.add(frame);
 
-            if(frame.getOpcode() == OpCode.CONTINUE){
+            if(frame.getFin() == 0 || frame.getOpcode() == OpCode.CONTINUE){
                 continue;
             }
 
