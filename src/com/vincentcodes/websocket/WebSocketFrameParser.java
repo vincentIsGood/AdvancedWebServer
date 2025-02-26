@@ -28,6 +28,7 @@ import static com.vincentcodes.webserver.util.ByteUtils.*;
  * encoded as UTF-8
  * 
  * @see https://tools.ietf.org/html/rfc6455#section-5.2
+ * @see https://datatracker.ietf.org/doc/html/rfc6455#section-5
  * @see https://stackoverflow.com/questions/43529031/websockets-and-text-encoding
  */
 /**
@@ -43,12 +44,14 @@ public class WebSocketFrameParser {
 
             // Start.
             is.read(nextTwoBytes);
+            int firstByte = toUnsignedByte(nextTwoBytes[0]);
+            int secondByte = toUnsignedByte(nextTwoBytes[1]);
 
-            frame.fin = (byte)((toUnsignedByte(nextTwoBytes[0]) & FrameMask.FIN_MASK.value) >> 7);
-            frame.rsv = (byte)(nextTwoBytes[0] & FrameMask.RSV_MASK.value);
-            frame.opcode = (byte)(nextTwoBytes[0] & FrameMask.OPCODE_MASK.value);
-            frame.isMasked = (byte)((toUnsignedByte(nextTwoBytes[1]) & FrameMask.IS_MASKED_MASK.value) >> 7);
-            frame.payloadLength = (byte)(nextTwoBytes[1] & FrameMask.PAYLOAD_LEN_MASK.value);
+            frame.fin = (byte)((firstByte & FrameMask.FIN_MASK.value) >> 7);
+            frame.rsv = (byte)(firstByte & FrameMask.RSV_MASK.value);
+            frame.opcode = (byte)(firstByte & FrameMask.OPCODE_MASK.value);
+            frame.isMasked = (byte)((secondByte & FrameMask.IS_MASKED_MASK.value) >> 7);
+            frame.payloadLength = (byte)(secondByte & FrameMask.PAYLOAD_LEN_MASK.value);
 
             // TODO: missing 2 bytes from status code
 
@@ -57,7 +60,7 @@ public class WebSocketFrameParser {
                 frame.payloadLength = getIntFrom2Bytes(nextTwoBytes, 0);
             }else if(frame.payloadLength == 127){
                 is.read(nextEightBytes);
-                frame.payloadLength = getIntFrom4Bytes(nextEightBytes, 0);
+                frame.payloadLength = getIntFromNBytes(nextEightBytes, 0, 8);
             }
 
             is.read(nextFourBytes);
