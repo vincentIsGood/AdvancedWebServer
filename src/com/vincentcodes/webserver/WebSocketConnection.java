@@ -1,8 +1,8 @@
 package com.vincentcodes.webserver;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.stream.Collectors;
 
 import com.vincentcodes.json.CannotMapFromObjectException;
 import com.vincentcodes.json.CannotMapToObjectException;
@@ -20,7 +20,8 @@ public class WebSocketConnection {
     private final WebSocketOperator operator;
     private final ObjectMapper mapper;
 
-    public WebSocketConnection(WebSocket ws, Class<? extends WebSocketOperator> eventsHandler) throws ReflectiveOperationException{
+    public WebSocketConnection(WebSocket ws, Class<? extends WebSocketOperator> eventsHandler)
+            throws ReflectiveOperationException {
         this.ws = ws;
         operator = eventsHandler.getConstructor().newInstance();
         mapper = new ObjectMapper(new ObjectMapperConfig.Builder().setAllowMissingProperty(true).build());
@@ -30,59 +31,65 @@ public class WebSocketConnection {
         operator.setWebSocket(ws);
     }
 
-    public void init(){
+    public void init() {
         ws.initConnectionChecker();
         ws.onWebSocketOpen().handleOnOpen();
     }
 
     /**
-     * This is a blocking operation until CLOSE / timeout 
-     * is reached. For a timeout to occur, checkout 
+     * This is a blocking operation until CLOSE / timeout
+     * is reached. For a timeout to occur, checkout
      * {@link WebSocket#initConnectionChecker()}.
      */
-    public void start() throws IOException{
+    public void start() throws IOException {
         WebSocketFrame frame = null;
-        ArrayList<WebSocketFrame> dataWithContinue = new ArrayList<>();
-        while((frame = ws.readNextFrame()).getOpcode() != OpCode.CLOSE){
-            if(frame.getOpcode() == OpCode.PONG){
-                ws.pingReceived();
-                continue;
-            }
-            dataWithContinue.add(frame);
 
-            if(frame.getFin() == 0 || frame.getOpcode() == OpCode.CONTINUE){
-                continue;
-            }
+        ByteArrayOutputStream payloadOutput = new ByteArrayOutputStream(8192);
+        
+        try{
+            while (true) {
+                if((frame = ws.readNextFrame(payloadOutput)).getOpcode() == OpCode.CLOSE){
+                    break;
+                }
 
-            String payload;
-            if(!dataWithContinue.isEmpty()){
-                payload = dataWithContinue.stream().map(res -> res.getPayload()).collect(Collectors.joining());
-            }else payload = frame.getPayload();
-            
-            if(ws.getOperator().isJsonRpcEnabled()){
-                try{
-                    JsonRpcResponseObject res = ws.onJsonRpcReceive().handle(mapper.jsonToObject(payload, JsonRpcRequestObject.class));
-                    if(res != null){
-                        ws.send(mapper.objectToJson(res));
+                if (frame.getOpcode() == OpCode.PONG) {
+                    ws.pingReceived();
+                    continue;
+                }
+    
+                if (frame.getFin() == 0 || frame.getOpcode() == OpCode.CONTINUE) {
+                    // keep accumulating data with payloadOutput in readNextFrame()
+                    continue;
+                }
+    
+                if (ws.getOperator().isJsonRpcEnabled()) {
+                    try {
+                        JsonRpcResponseObject res = ws.onJsonRpcReceive()
+                                .handle(mapper.jsonToObject(new String(payloadOutput.toByteArray()), JsonRpcRequestObject.class));
+                        if (res != null) {
+                            ws.send(mapper.objectToJson(res));
+                        }
+                    } catch (CannotMapToObjectException | CannotMapFromObjectException e) {
+                        e.printStackTrace();
                     }
-                }catch(CannotMapToObjectException | CannotMapFromObjectException e){
-                    e.printStackTrace();
+                } else {
+                    String res = ws.onMessageReceive().handle(new ByteArrayInputStream(payloadOutput.toByteArray()));
+                    if (res != null) {
+                        ws.send(res);
+                    }
                 }
-            }else{
-                String res = ws.onMessageReceive().handle(payload);
-                if(res != null){
-                    ws.send(res);
-                }
+                payloadOutput.reset();
             }
-            dataWithContinue.clear();
+        }finally{
+            payloadOutput.close();
+            ws.close();
         }
-        ws.close();
     }
 
     /**
      * Will not close the underlying socket.
      */
-    public void close(){
+    public void close() {
         ws.onWebSocketClose().handleOnClose();
     }
 }

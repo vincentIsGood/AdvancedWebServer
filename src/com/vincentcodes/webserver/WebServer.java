@@ -107,6 +107,10 @@ public class WebServer {
             enable(LogType.DEBUG);
         }
     };
+    /**
+     * Will lower server performance
+     * @see WebSocketFrameParser
+     */
     public static boolean lowLevelDebugMode = false;
     public static boolean displayWindowUpdates = false;
 

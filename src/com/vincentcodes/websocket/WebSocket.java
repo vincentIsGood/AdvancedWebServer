@@ -2,6 +2,7 @@ package com.vincentcodes.websocket;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.io.OutputStream;
 
 import com.vincentcodes.net.UpgradableSocket;
 import com.vincentcodes.webserver.WebServer;
@@ -69,9 +70,11 @@ public class WebSocket {
      * This is a blocking method. It waits for the client to
      * send data through the stream and tries to parse it into 
      * a WebSocketFrame.
+     * @param payloadOutput [nullable] {@code frame.payload} will be {@code null} 
+     * if an {@code OutpuStream} is provided
      */
-    public WebSocketFrame readNextFrame() throws IOException{
-        WebSocketFrame frame = WebSocketFrameParser.parse(ioContainer.getInputStream());
+    public WebSocketFrame readNextFrame(OutputStream payloadOutput) throws IOException{
+        WebSocketFrame frame = WebSocketFrameParser.parse(ioContainer.getInputStream(), payloadOutput);
 
         if(WebServer.lowLevelDebugMode)
             WebServer.logger.debug("Ws Recv: " + frame.toString());

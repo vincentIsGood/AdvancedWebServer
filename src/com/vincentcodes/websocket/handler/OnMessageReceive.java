@@ -1,5 +1,7 @@
 package com.vincentcodes.websocket.handler;
 
+import java.io.InputStream;
+
 import com.vincentcodes.webserver.ServerThread;
 
 /**
@@ -8,5 +10,5 @@ import com.vincentcodes.webserver.ServerThread;
  * @see ServerThread#websocketInitialization
  */
 public interface OnMessageReceive {
-    public String handle(String payload);
+    public String handle(InputStream payload);
 }

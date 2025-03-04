@@ -1,11 +1,16 @@
 package com.vincentcodes.websocket;
 
+import static com.vincentcodes.webserver.util.ByteUtils.getIntFrom2Bytes;
+import static com.vincentcodes.webserver.util.ByteUtils.getIntFromNBytes;
+import static com.vincentcodes.webserver.util.ByteUtils.toUnsignedByte;
+
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 
+import com.vincentcodes.webserver.WebServer;
 import com.vincentcodes.websocket.constants.FrameMask;
 import com.vincentcodes.websocket.exception.InvalidWebSocketFrame;
-import static com.vincentcodes.webserver.util.ByteUtils.*;
 
 /**
  * frame-fin              ; 1 bit in length
@@ -35,7 +40,11 @@ import static com.vincentcodes.webserver.util.ByteUtils.*;
  * This class provides the tools to parse websocket basic frames
  */
 public class WebSocketFrameParser {
-    public static WebSocketFrame parse(InputStream is) throws IOException{
+    /**
+     * @param is
+     * @param payloadOutput if non-null, output {@code frame.payload} will be {@code null}
+     */
+    public static WebSocketFrame parse(InputStream is, OutputStream payloadOutput) throws IOException{
         WebSocketFrame frame = new WebSocketFrame();
         try{
             byte[] nextTwoBytes = new byte[2];
@@ -67,14 +76,23 @@ public class WebSocketFrameParser {
             frame.maskingKey = nextFourBytes;
 
             frame.payload = "";
+
+            int readAmount = 4096;
             long bytesRead = 0;
-            byte[] payload = new byte[4096];
+            byte[] payload = new byte[readAmount];
             while(bytesRead < frame.payloadLength){
-                if(bytesRead+4096 > frame.payloadLength){
+                if(bytesRead + readAmount > frame.payloadLength){
                     payload = new byte[(int)(frame.payloadLength - bytesRead)];
                 }
                 bytesRead += is.read(payload);
-                frame.payload += new String(decode(payload, 0, frame.maskingKey, payload.length));
+                if(payloadOutput == null){
+                    frame.payload += new String(decode(payload, 0, frame.maskingKey, payload.length));
+                }else{
+                    if(WebServer.lowLevelDebugMode){
+                        frame.payload += new String(decode(payload, 0, frame.maskingKey, payload.length));
+                    }
+                    payloadOutput.write(decode(payload, 0, frame.maskingKey, payload.length));
+                }
             }
         }catch(IndexOutOfBoundsException e){
             throw new InvalidWebSocketFrame(e);
