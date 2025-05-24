@@ -49,6 +49,10 @@ public class RequestParser {
             String line = null;
 
             line = reader.readLine();
+            if(line == null){
+                throw new IOException("Received null on the first line.");
+            }
+
             wholeRequest.append(line).append("\r\n");
             basicInfo = parseFirstLine(line);
             
